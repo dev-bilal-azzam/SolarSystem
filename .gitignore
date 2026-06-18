@@ -1,5 +1,12 @@
 *.iml
 .gradle
+.idea/
+*.jks
+app/release/
+*.apk
+*.aab
+build/
+app/build/
 /local.properties
 /.idea/caches
 /.idea/libraries
