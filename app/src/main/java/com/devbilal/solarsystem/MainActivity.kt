@@ -5,10 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -17,9 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -35,14 +30,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -81,6 +73,7 @@ fun SolarSystemScreen() {
 
         // Progress tracks the scroll state: 0f = Start, 1f = End.
         val scrollProgress = remember { Animatable(0f) }
+        var isDragUp = remember { false }
 
         // Swipe sensitivity determining how much pixel drag equals a full 0-1 transition
         val maxScrollDistancePx = screenHeightPx * 0.65f
@@ -89,25 +82,19 @@ fun SolarSystemScreen() {
             detectVerticalDragGestures(
                 onDragEnd = {
                     // Snap smoothly to the closest state upon releasing the finger
-                    coroutineScope.launch {
-                        val target = if (scrollProgress.value > 0.5f) 1f else 0f
-                        scrollProgress.animateTo(
-                            targetValue = target,
-                            animationSpec = tween(
-                                durationMillis = 1000,
-                                easing = FastOutSlowInEasing
-                            )
-                        )
-                    }
+                    val target = if (isDragUp) 1f else 0f
+                    val animationSpec = spring<Float>(.6f, 12f)
+                    coroutineScope.launch { scrollProgress.animateTo(target, animationSpec) }
                 },
                 onDragCancel = {
-                    coroutineScope.launch {
-                        val target = if (scrollProgress.value > 0.5f) 1f else 0f
-                        scrollProgress.animateTo(target, tween(1000, easing = FastOutSlowInEasing))
-                    }
+                    val target = if (isDragUp) 1f else 0f
+                    val animationSpec = spring<Float>(.6f, 12f)
+                    coroutineScope.launch { scrollProgress.animateTo(target, animationSpec) }
                 },
                 onVerticalDrag = { change, dragAmount ->
                     change.consume()
+                    isDragUp = if (dragAmount < 0) true else false
+                    println("MAINACTIVITY : drag amount = $dragAmount")
                     // Dragging up (negative dragAmount) increases progress towards 1f (End State)
                     val progressDelta = -dragAmount / maxScrollDistancePx
                     coroutineScope.launch {
@@ -253,13 +240,5 @@ fun BoxScope.AnimatedFooter(
             fontSize = 16.sp,
             letterSpacing = 0.25.sp
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SolarSystemScreenPreview() {
-    SolarSystemTheme {
-        SolarSystemScreen()
     }
 }
