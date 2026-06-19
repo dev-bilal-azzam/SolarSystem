@@ -8,7 +8,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,17 +32,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,7 +63,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.lerp as lerpColor
-
 
 
 class MainActivity : ComponentActivity() {
@@ -153,382 +146,6 @@ fun SolarSystemScreen() {
 //endregion
 
 
-
-
-//region AnimatedPlanetsList
-@Composable
-fun AnimatedPlanetsList(
-    progressProvider: () -> Float,
-    screenHeightPx: Float
-) {
-    val density = LocalDensity.current
-    val screenWidth = LocalWindowInfo.current.containerDpSize.width
-    val coroutineScope = rememberCoroutineScope()
-
-    val spacingPx = with(density) { 16.dp.toPx() }
-    val stackOffsetPx = with(density) { 14.dp.toPx() }
-    val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
-    val listSpacingPx = with(density) { 24.dp.toPx() }
-
-    val startEarthBottomPx = (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
-    val startY = startEarthBottomPx + listSpacingPx
-    val endEarthBottomPx = (screenHeightPx * 0.12f) + earthBaseSizePx
-    val endY = endEarthBottomPx + listSpacingPx
-    val visibleHeightDp = with(density) { (screenHeightPx - endY).toDp() }
-
-    val cardHeightsPx = remember { mutableStateListOf<Float>().apply { repeat(planetsList.size) { add(0f) } } }
-    val scrollOffsetPx = remember { Animatable(0f) }
-    var isDragUp = remember { false }
-
-    val gestureModifier = Modifier.pointerInput(Unit) {
-        detectVerticalDragGestures(
-            onDragEnd = {
-                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
-
-                val snapPoints = FloatArray(planetsList.size)
-                var currentY = 0f
-                for (i in planetsList.indices) {
-                    snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
-                    currentY += cardHeightsPx[i] + spacingPx
-                }
-
-                val currentScroll = scrollOffsetPx.value
-                val target = if (isDragUp) {
-                    snapPoints.firstOrNull { it >= currentScroll } ?: snapPoints.last()
-                } else {
-                    snapPoints.lastOrNull { it <= currentScroll } ?: snapPoints.first()
-                }
-
-                coroutineScope.launch {
-                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
-                }
-            },
-            onDragCancel = {
-                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
-
-                val snapPoints = FloatArray(planetsList.size)
-                var currentY = 0f
-                for (i in planetsList.indices) {
-                    snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
-                    currentY += cardHeightsPx[i] + spacingPx
-                }
-
-                val currentScroll = scrollOffsetPx.value
-                val target = snapPoints.minByOrNull { kotlin.math.abs(it - currentScroll) } ?: 0f
-
-                coroutineScope.launch {
-                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
-                }
-            },
-            onVerticalDrag = { change, dragAmount ->
-                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
-
-                change.consume()
-                isDragUp = dragAmount < 0
-
-                val lastIndex = planetsList.size - 1
-                var lastDefaultY = 0f
-                for (i in 0 until lastIndex) {
-                    lastDefaultY += cardHeightsPx[i] + spacingPx
-                }
-                val maxScroll = maxOf(0f, lastDefaultY - (lastIndex * stackOffsetPx))
-
-                coroutineScope.launch {
-                    val newScroll = (scrollOffsetPx.value - dragAmount).coerceIn(0f, maxScroll)
-                    scrollOffsetPx.snapTo(newScroll)
-                }
-            }
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(visibleHeightDp)
-            .graphicsLayer {
-                val progress = progressProvider()
-                translationY = lerp(startY, endY, progress)
-            }
-            .then(gestureModifier)
-            .padding(horizontal = 24.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 24.dp)
-        ) {
-            planetsList.forEachIndexed { index, planet ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onGloballyPositioned { layoutCoordinates ->
-                            val height = layoutCoordinates.size.height.toFloat()
-                            if (cardHeightsPx[index] != height) {
-                                cardHeightsPx[index] = height
-                            }
-                        }
-                        .graphicsLayer {
-                            alpha = if (cardHeightsPx[index] == 0f) 0f else 1f
-
-                            val currentScroll = scrollOffsetPx.value
-
-                            var defaultY = 0f
-                            for (i in 0 until index) {
-                                defaultY += cardHeightsPx[i] + spacingPx
-                            }
-
-                            val stackedY = index * stackOffsetPx
-                            val movingY = defaultY - currentScroll
-
-                            translationY = maxOf(stackedY, movingY)
-                        }
-                ) {
-                    PlanetCard(
-                        planet = planet,
-                        // الـ Provider بتاعك القديم زي ما هو عشان لون خلفية الكارد ميبُظش
-                        scrollOffsetProvider = {
-                            val currentScroll = scrollOffsetPx.value
-                            var defaultY = 0f
-                            for (i in 0 until index) {
-                                defaultY += cardHeightsPx[i] + spacingPx
-                            }
-                            val stackedY = index * stackOffsetPx
-                            val distanceToStack = defaultY - stackedY
-                            if (distanceToStack <= 0f) 0f
-                            else (currentScroll / distanceToStack).coerceIn(0f, 1f)
-                        },
-                        // الـ Provider الجديد اللي هيحسب التعتيم بناءً على "مين اللي طلع فوقي"
-                        dimmingProgressProvider = {
-                            val currentScroll = scrollOffsetPx.value
-                            var defaultY = 0f
-                            for (i in 0 until index) {
-                                defaultY += cardHeightsPx[i] + spacingPx
-                            }
-                            val stackedY = index * stackOffsetPx
-
-                            // 1. النقطة اللي الكارد ده بيوصل فيها للـ stack ويقف (هنا بيكون لسه هو اللي على الوش)
-                            val stackPoint = defaultY - stackedY
-
-                            // 2. النقطة اللي الكارد اللي *بعده* هيوصل فيها ويغطيه بالكامل
-                            val cardHeight = if (cardHeightsPx[index] > 0) cardHeightsPx[index] else 800f // fallback أولي
-                            val nextStackPoint = stackPoint + cardHeight + spacingPx - stackOffsetPx
-
-                            when {
-                                currentScroll <= stackPoint -> 0f // الكارد لسه بيتحرك أو لسه واصل للوش حالاً (منور تماماً)
-                                currentScroll >= nextStackPoint -> 1f // الكارد اللي بعده طلع غطاه بالكامل (مطفي)
-                                else -> (currentScroll - stackPoint) / (nextStackPoint - stackPoint) // كارد تاني طالع يغطيه (بيطفي تدريجياً)
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-//endregion
-
-// region PlanetCard
-@Composable
-fun PlanetCard(
-    planet: PlanetData,
-    scrollOffsetProvider: () -> Float,
-    dimmingProgressProvider: () -> Float
-) {
-    // احسب الـ dimming مرة واحدة هنا
-    val dimmingProgress = dimmingProgressProvider()
-    // ده الـ Alpha اللي هنقلله من الألوان (مثلاً من 1f لـ 0.5f)
-    val contentAlpha = 1f - (dimmingProgress * 0.5f).coerceIn(0f, 1f)
-
-    Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .border(0.5.dp, planetBorder.copy(alpha = contentAlpha), RoundedCornerShape(24.dp))
-                .drawBehind {
-                    val progress = scrollOffsetProvider()
-                    val color = lerpColor(planetBg.copy(alpha = 0.8f * contentAlpha), planetBg.copy(alpha = contentAlpha), progress)
-                    drawRoundRect(color = color)
-                }
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 20.dp)
-        ) {
-            // هنا استخدم الـ contentAlpha في ألوان النصوص والـ Icons
-            Column(modifier = Modifier.alpha(contentAlpha)) {
-                Row(
-                    modifier = Modifier
-                        .height(96.dp)
-                        .padding(bottom = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier
-                        .width(112.dp)
-                        .padding(end = 16.dp))
-                    Column {
-                        Text(
-                            text = planet.name,
-                            color = Color.White,
-                            fontFamily = FontFamily(Font(R.font.rubik_bold)),
-                            fontSize = 18.sp,
-                            letterSpacing = 0.25.sp
-                        )
-                        Text(
-                            text = planet.subtitle,
-                            color = Color.LightGray,
-                            fontFamily = FontFamily(Font(R.font.rubik_regular)),
-                            fontSize = 14.sp,
-                            letterSpacing = 0.25.sp
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "You Would Weigh",
-                            value = planet.weight,
-                            icon = ImageVector.vectorResource(R.drawable.ic_weight)
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .width(0.5.dp)
-                            .height(32.dp)
-                            .background(Color.White.copy(alpha = 0.16f))
-                    )
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "One Day",
-                            value = planet.day,
-                            icon = ImageVector.vectorResource(R.drawable.ic_sun)
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .padding(vertical = 16.dp)
-                        .fillMaxWidth()
-                        .height(0.5.dp)
-                        .background(Color.White.copy(alpha = 0.16f))
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "Temperature",
-                            value = planet.temp,
-                            icon = ImageVector.vectorResource(R.drawable.ic_temperature),
-                            subValue = planet.tempInfo
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .width(0.5.dp)
-                            .height(32.dp)
-                            .background(Color.White.copy(alpha = 0.16f))
-                    )
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "Additional info",
-                            value = planet.info,
-                            icon = ImageVector.vectorResource(R.drawable.ic_info)
-                        )
-                    }
-                }
-            }
-        }
-
-        // الصورة والشادو بتوعها مش هيتأثروا بالـ alpha دي لأننا حطيناها جوه الـ Column بس
-        // لو عاوز الصورة كمان تبهت، حط لها Modifier.alpha(contentAlpha)
-        Image(
-            painter = painterResource(id = planet.imageId),
-            contentDescription = planet.name,
-            modifier = Modifier
-                .padding(start = 16.dp)
-                .size(112.dp)
-                .dropShadow(
-                    shape = CircleShape,
-                    shadow = Shadow(
-                        radius = 100.dp,
-                        color = planet.glowColor,
-                        alpha = 0.5f,
-                    )
-                )
-                .alpha(contentAlpha)
-        )
-    }
-}
-//endregion
-
-// region StatItem
-@Composable
-fun StatItem(
-    title: String,
-    value: String,
-    icon: ImageVector,
-    subValue: String? = null
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(20.dp)
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                color = Color.White.copy(alpha = 0.66f),
-                fontSize = 12.sp,
-                fontFamily = FontFamily(Font(R.font.rubik_regular)),
-                letterSpacing = 0.25.sp,
-                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-            )
-
-            val combinedValue = remember(value, subValue) {
-                buildAnnotatedString {
-                    append(value)
-                    if (!subValue.isNullOrEmpty()) {
-                        withStyle(
-                            style = SpanStyle(
-                                color = Color.White.copy(alpha = 0.66f),
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily(Font(R.font.rubik_regular))
-                            )
-                        ) {
-                            append(", $subValue")
-                        }
-                    }
-                }
-            }
-
-            Text(
-                text = combinedValue,
-                color = Color.White.copy(alpha = 0.88f),
-                fontSize = 12.sp,
-                fontFamily = FontFamily(Font(R.font.rubik_medium)),
-                letterSpacing = 0.25.sp,
-                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-            )
-        }
-    }
-}
-//endregion
-
 // region AnimatedBackground
 @Composable
 fun AnimatedBackground(progressProvider: () -> Float) {
@@ -562,7 +179,8 @@ fun BoxScope.AnimatedHeader(
 ) {
     val density = LocalDensity.current
     val screenWidth = LocalWindowInfo.current.containerDpSize.width
-    val earthBaseSizePx = remember(density, screenWidth) { with(density) { (screenWidth * 0.55f).toPx() } }
+    val earthBaseSizePx =
+        remember(density, screenWidth) { with(density) { (screenWidth * 0.55f).toPx() } }
     val startPaddingPx = remember(density) { with(density) { 56.dp.toPx() } }
     val endPaddingPx = remember(density) { with(density) { 98.dp.toPx() } }
     val shadowOffsetPx = remember(density) { with(density) { 4.dp.toPx() } }
@@ -755,6 +373,402 @@ fun BoxScope.AnimatedFooter(
                 )
             )
         )
+    }
+}
+//endregion
+
+//region AnimatedPlanetsList
+@Composable
+fun AnimatedPlanetsList(
+    progressProvider: () -> Float,
+    screenHeightPx: Float
+) {
+    val density = LocalDensity.current
+    val screenWidth = LocalWindowInfo.current.containerDpSize.width
+    val coroutineScope = rememberCoroutineScope()
+
+    val spacingPx = with(density) { 16.dp.toPx() }
+    val stackOffsetPx = with(density) { 14.dp.toPx() }
+    val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
+    val listSpacingPx = with(density) { 24.dp.toPx() }
+
+    val startEarthBottomPx =
+        (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
+    val startY = startEarthBottomPx + listSpacingPx
+    val endEarthBottomPx = (screenHeightPx * 0.12f) + earthBaseSizePx
+    val endY = endEarthBottomPx + listSpacingPx
+    val visibleHeightDp = with(density) { (screenHeightPx - endY).toDp() }
+
+    val cardHeightsPx =
+        remember { mutableStateListOf<Float>().apply { repeat(planetsList.size) { add(0f) } } }
+    val scrollOffsetPx = remember { Animatable(0f) }
+    var isDragUp = remember { false }
+
+    val gestureModifier = Modifier.pointerInput(Unit) {
+        detectVerticalDragGestures(
+            onDragEnd = {
+                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
+
+                val snapPoints = FloatArray(planetsList.size)
+                var currentY = 0f
+                for (i in planetsList.indices) {
+                    snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
+                    currentY += cardHeightsPx[i] + spacingPx
+                }
+
+                val currentScroll = scrollOffsetPx.value
+                val target = if (isDragUp) {
+                    snapPoints.firstOrNull { it >= currentScroll } ?: snapPoints.last()
+                } else {
+                    snapPoints.lastOrNull { it <= currentScroll } ?: snapPoints.first()
+                }
+
+                coroutineScope.launch {
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
+                }
+            },
+            onDragCancel = {
+                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
+
+                val snapPoints = FloatArray(planetsList.size)
+                var currentY = 0f
+                for (i in planetsList.indices) {
+                    snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
+                    currentY += cardHeightsPx[i] + spacingPx
+                }
+
+                val currentScroll = scrollOffsetPx.value
+                val target = snapPoints.minByOrNull { kotlin.math.abs(it - currentScroll) } ?: 0f
+
+                coroutineScope.launch {
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
+                }
+            },
+            onVerticalDrag = { change, dragAmount ->
+                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
+
+                change.consume()
+                isDragUp = dragAmount < 0
+
+                val lastIndex = planetsList.size - 1
+                var lastDefaultY = 0f
+                for (i in 0 until lastIndex) {
+                    lastDefaultY += cardHeightsPx[i] + spacingPx
+                }
+                val maxScroll = maxOf(0f, lastDefaultY - (lastIndex * stackOffsetPx))
+
+                coroutineScope.launch {
+                    val newScroll = (scrollOffsetPx.value - dragAmount).coerceIn(0f, maxScroll)
+                    scrollOffsetPx.snapTo(newScroll)
+                }
+            }
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(visibleHeightDp)
+            .graphicsLayer {
+                val progress = progressProvider()
+                translationY = lerp(startY, endY, progress)
+            }
+            .then(gestureModifier)
+            .padding(horizontal = 24.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp)
+        ) {
+            planetsList.forEachIndexed { index, planet ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { layoutCoordinates ->
+                            val height = layoutCoordinates.size.height.toFloat()
+                            if (cardHeightsPx[index] != height) {
+                                cardHeightsPx[index] = height
+                            }
+                        }
+                        .graphicsLayer {
+                            alpha = if (cardHeightsPx[index] == 0f) 0f else 1f
+
+                            val currentScroll = scrollOffsetPx.value
+
+                            var defaultY = 0f
+                            for (i in 0 until index) {
+                                defaultY += cardHeightsPx[i] + spacingPx
+                            }
+
+                            val stackedY = index * stackOffsetPx
+                            val movingY = defaultY - currentScroll
+
+                            translationY = maxOf(stackedY, movingY)
+                        }
+                ) {
+                    PlanetCard(
+                        planet = planet,
+                        scrollOffsetProvider = {
+                            val currentScroll = scrollOffsetPx.value
+                            var defaultY = 0f
+                            for (i in 0 until index) {
+                                defaultY += cardHeightsPx[i] + spacingPx
+                            }
+                            val stackedY = index * stackOffsetPx
+                            val distanceToStack = defaultY - stackedY
+                            if (distanceToStack <= 0f) 0f
+                            else (currentScroll / distanceToStack).coerceIn(0f, 1f)
+                        },
+                        dimmingProgressProvider = {
+                            val currentScroll = scrollOffsetPx.value
+                            var defaultY = 0f
+                            for (i in 0 until index) {
+                                defaultY += cardHeightsPx[i] + spacingPx
+                            }
+                            val stackedY = index * stackOffsetPx
+
+                            val stackPoint = defaultY - stackedY
+
+                            val cardHeight =
+                                if (cardHeightsPx[index] > 0) cardHeightsPx[index] else 800f
+                            val nextStackPoint = stackPoint + cardHeight + spacingPx - stackOffsetPx
+
+                            when {
+                                currentScroll <= stackPoint -> 0f
+                                currentScroll >= nextStackPoint -> 1f
+                                else -> (currentScroll - stackPoint) / (nextStackPoint - stackPoint)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+//endregion
+
+// region PlanetCard
+@Composable
+fun PlanetCard(
+    planet: PlanetData,
+    scrollOffsetProvider: () -> Float,
+    dimmingProgressProvider: () -> Float
+) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .drawBehind {
+                    val dimmingProgress = dimmingProgressProvider()
+                    val contentAlpha = 1f - (dimmingProgress * 0.55f).coerceIn(0f, 1f)
+
+                    val progress = scrollOffsetProvider()
+                    val bgAlpha = 0.8f + (progress * 0.2f)
+
+                    val cornerRadiusPx = 24.dp.toPx()
+                    val cornerRadius =
+                        androidx.compose.ui.geometry.CornerRadius(cornerRadiusPx, cornerRadiusPx)
+
+                    drawRoundRect(
+                        color = planetBg.copy(alpha = bgAlpha),
+                        cornerRadius = cornerRadius
+                    )
+
+                    drawRoundRect(
+                        color = planetBorder.copy(alpha = contentAlpha),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 0.5.dp.toPx()),
+                        cornerRadius = cornerRadius
+                    )
+                }
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 20.dp)
+        ) {
+            Column(
+                modifier = Modifier.graphicsLayer {
+                    val dimmingProgress = dimmingProgressProvider()
+                    alpha = 1f - (dimmingProgress * 0.55f).coerceIn(0f, 1f)
+                }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .height(96.dp)
+                        .padding(bottom = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(
+                        modifier = Modifier
+                            .width(112.dp)
+                            .padding(end = 16.dp)
+                    )
+                    Column {
+                        Text(
+                            text = planet.name,
+                            color = Color.White,
+                            fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                            fontSize = 18.sp,
+                            letterSpacing = 0.25.sp
+                        )
+                        Text(
+                            text = planet.subtitle,
+                            color = Color.LightGray,
+                            fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                            fontSize = 14.sp,
+                            letterSpacing = 0.25.sp
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "You Would Weigh",
+                            value = planet.weight,
+                            icon = ImageVector.vectorResource(R.drawable.ic_weight)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .width(0.5.dp)
+                            .height(32.dp)
+                            .background(Color.White.copy(alpha = 0.16f))
+                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "One Day",
+                            value = planet.day,
+                            icon = ImageVector.vectorResource(R.drawable.ic_sun)
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 16.dp)
+                        .fillMaxWidth()
+                        .height(0.5.dp)
+                        .background(Color.White.copy(alpha = 0.16f))
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "Temperature",
+                            value = planet.temp,
+                            icon = ImageVector.vectorResource(R.drawable.ic_temperature),
+                            subValue = planet.tempInfo
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .width(0.5.dp)
+                            .height(32.dp)
+                            .background(Color.White.copy(alpha = 0.16f))
+                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "Additional info",
+                            value = planet.info,
+                            icon = ImageVector.vectorResource(R.drawable.ic_info)
+                        )
+                    }
+                }
+            }
+        }
+
+        Image(
+            painter = painterResource(id = planet.imageId),
+            contentDescription = planet.name,
+            modifier = Modifier
+                .padding(start = 16.dp)
+                .size(112.dp)
+                .dropShadow(
+                    shape = CircleShape,
+                    shadow = Shadow(
+                        radius = 100.dp,
+                        color = planet.glowColor,
+                        alpha = 0.5f,
+                    )
+                )
+                .graphicsLayer {
+                    val dimmingProgress = dimmingProgressProvider()
+                    alpha = 1f - (dimmingProgress * 0.55f).coerceIn(0f, 1f)
+                }
+        )
+    }
+}
+//endregion
+
+// region StatItem
+@Composable
+fun StatItem(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    subValue: String? = null
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                color = Color.White.copy(alpha = 0.66f),
+                fontSize = 12.sp,
+                fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                letterSpacing = 0.25.sp,
+                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+            )
+
+            val combinedValue = remember(value, subValue) {
+                buildAnnotatedString {
+                    append(value)
+                    if (!subValue.isNullOrEmpty()) {
+                        withStyle(
+                            style = SpanStyle(
+                                color = Color.White.copy(alpha = 0.66f),
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily(Font(R.font.rubik_regular))
+                            )
+                        ) {
+                            append(", $subValue")
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = combinedValue,
+                color = Color.White.copy(alpha = 0.88f),
+                fontSize = 12.sp,
+                fontFamily = FontFamily(Font(R.font.rubik_medium)),
+                letterSpacing = 0.25.sp,
+                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+            )
+        }
     }
 }
 //endregion
