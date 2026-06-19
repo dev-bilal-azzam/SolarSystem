@@ -158,20 +158,17 @@ fun AnimatedPlanetsList(
     val screenWidth = LocalWindowInfo.current.containerDpSize.width
     val coroutineScope = rememberCoroutineScope()
 
-    // Constants for list and stack styling
     val spacingPx = with(density) { 16.dp.toPx() }
     val stackOffsetPx = with(density) { 16.dp.toPx() }
     val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
     val listSpacingPx = with(density) { 24.dp.toPx() }
 
-    // Screen bound calculations
     val startEarthBottomPx = (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
     val startY = startEarthBottomPx + listSpacingPx
     val endEarthBottomPx = (screenHeightPx * 0.12f) + earthBaseSizePx
     val endY = endEarthBottomPx + listSpacingPx
     val visibleHeightDp = with(density) { (screenHeightPx - endY).toDp() }
 
-    // 🎯 التعديل الأول: استخدام mutableStateListOf ليتفاعل الـ UI فور حساب الأطوال الحقيقية
     val cardHeightsPx = remember { mutableStateListOf<Float>().apply { repeat(planetsList.size) { add(0f) } } }
     val scrollOffsetPx = remember { Animatable(0f) }
     var isDragUp = remember { false }
@@ -181,7 +178,6 @@ fun AnimatedPlanetsList(
             onDragEnd = {
                 if (progressProvider() < 0.99f) return@detectVerticalDragGestures
 
-                // Calculate dynamic snapping points based on exact card heights
                 val snapPoints = FloatArray(planetsList.size)
                 var currentY = 0f
                 for (i in planetsList.indices) {
@@ -223,7 +219,6 @@ fun AnimatedPlanetsList(
                 change.consume()
                 isDragUp = dragAmount < 0
 
-                // Calculate boundaries dynamically
                 val lastIndex = planetsList.size - 1
                 var lastDefaultY = 0f
                 for (i in 0 until lastIndex) {
@@ -270,17 +265,14 @@ fun AnimatedPlanetsList(
 
                             val currentScroll = scrollOffsetPx.value
 
-                            // Normal position calculation based on measured heights
                             var defaultY = 0f
                             for (i in 0 until index) {
                                 defaultY += cardHeightsPx[i] + spacingPx
                             }
 
-                            // 16dp stacked offset calculation
                             val stackedY = index * stackOffsetPx
                             val movingY = defaultY - currentScroll
 
-                            // Stacking behavior happens dynamically here
                             translationY = maxOf(stackedY, movingY)
                         }
                 ) {
