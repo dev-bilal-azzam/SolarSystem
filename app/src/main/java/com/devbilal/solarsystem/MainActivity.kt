@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -30,11 +33,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -93,7 +98,7 @@ fun SolarSystemScreen() {
                 },
                 onVerticalDrag = { change, dragAmount ->
                     change.consume()
-                    isDragUp = if (dragAmount < 0) true else false
+                    isDragUp = dragAmount < 0
                     println("MAINACTIVITY : drag amount = $dragAmount")
                     // Dragging up (negative dragAmount) increases progress towards 1f (End State)
                     val progressDelta = -dragAmount / maxScrollDistancePx
@@ -113,6 +118,11 @@ fun SolarSystemScreen() {
             AnimatedBackground(progressProvider = { scrollProgress.value })
 
             AnimatedEarth(
+                progressProvider = { scrollProgress.value },
+                screenHeightPx = screenHeightPx
+            )
+
+            AnimatedHeader(
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx
             )
@@ -151,6 +161,102 @@ fun AnimatedBackground(progressProvider: () -> Float) {
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+    }
+}
+
+@Composable
+fun BoxScope.AnimatedHeader(
+    progressProvider: () -> Float,
+    screenHeightPx: Float
+) {
+    val density = LocalDensity.current
+    val screenWidth = LocalWindowInfo.current.containerDpSize.width
+
+    // Exact same Earth size logic from AnimatedEarth
+    val earthBaseSizePx = remember(density, screenWidth) { with(density) { (screenWidth * 0.55f).toPx() } }
+
+    // Dynamic paddings required for the Start Header
+    val startPaddingPx = remember(density) { with(density) { 56.dp.toPx() } }
+    val endPaddingPx = remember(density) { with(density) { 98.dp.toPx() } }
+
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        // 1. END STATE HEADER (Perfect Center Alignment to Earth)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                val progress = progressProvider()
+
+                // 🎯 THE MAGIC FORMULA:
+                // Earth Top in End State = screenHeightPx * 0.12f
+                // Earth Center in End State = (screenHeightPx * 0.12f) + (earthBaseSizePx / 2)
+                // We offset the header by this exact amount, then subtract half of the header's estimated height
+                // (around 40dp converted to px) to achieve absolute vertical center matching.
+                val earthCenterY = (screenHeightPx * 0.12f) + (earthBaseSizePx / 2f)
+                val headerHalfHeightPx = with(density) { 40.dp.toPx() }
+                val finalCenterY = earthCenterY - headerHalfHeightPx
+
+                // Movement: Fly down from above the screen (-0.4f) to the exact finalCenterY
+                val startTranslateY = -screenHeightPx * 0.4f
+
+                translationY = lerp(startTranslateY, finalCenterY, progress)
+                alpha = 1f
+            }
+        ) {
+            Text(
+                text = "Our Solar System",
+                color = Color.White,
+                fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                fontWeight = FontWeight(700),
+                fontSize = 24.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Earth is only one small part of a much larger story.",
+                color = Color.White,
+                fontFamily = FontFamily(Font(R.font.lily_regular)),
+                fontWeight = FontWeight(400),
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        // 2. START STATE HEADER (Follows standard padding rules)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                val progress = progressProvider()
+
+                val currentPadding = lerp(startPaddingPx, endPaddingPx, progress)
+
+                val startTranslateY = 0f
+                val endTranslateY = -screenHeightPx * 0.4f
+
+                translationY = lerp(startTranslateY, endTranslateY, progress) + currentPadding
+                alpha = 1f
+            }
+        ) {
+            Text(
+                text = "Earth",
+                color = Color.White,
+                fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                fontWeight = FontWeight(700),
+                fontSize = 64.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "A tiny blue world drifting\nthrough the endless dark.",
+                color = Color.White,
+                fontFamily = FontFamily(Font(R.font.lily_regular)),
+                fontWeight = FontWeight(400),
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
