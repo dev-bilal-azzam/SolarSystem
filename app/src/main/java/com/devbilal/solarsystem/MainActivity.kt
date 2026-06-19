@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,10 +45,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -60,6 +64,8 @@ import com.devbilal.solarsystem.ui.theme.bgEnd3
 import com.devbilal.solarsystem.ui.theme.bgStart1
 import com.devbilal.solarsystem.ui.theme.bgStart2
 import com.devbilal.solarsystem.ui.theme.bgStart3
+import com.devbilal.solarsystem.ui.theme.planetBg
+import com.devbilal.solarsystem.ui.theme.planetBorder
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.lerp as lerpColor
 
@@ -210,131 +216,198 @@ fun AnimatedPlanetsList(
             planetsList.forEach { planet ->
                 PlanetCard(planet = planet)
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
 fun PlanetCard(planet: PlanetData) {
+    // استخدمنا Box خارجي كحاوية لتسمح للصورة بالخروج من حدود الكارت العلوي بدون اقتصاصها
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF161622))
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-            .padding(horizontal = 16.dp)
-            .padding(bottom = 20.dp)
+            .padding(top = 16.dp) // 👈 مسافة علوية لإعطاء مساحة للجزء البارز من الكوكب
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(id = planet.imageId),
-                    contentDescription = planet.name,
-                    modifier = Modifier.size(112.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = planet.name,
-                        color = Color.White,
-                        fontFamily = FontFamily(Font(R.font.rubik_bold)),
-                        fontSize = 18.sp,
-                        letterSpacing = .25.sp
-                    )
-                    Text(
-                        text = planet.subtitle,
-                        color = Color.LightGray,
-                        fontFamily = FontFamily(Font(R.font.rubik_regular)),
-                        fontSize = 14.sp,
-                        letterSpacing = .25.sp
-                    )
+        // جسم الكارت الأساسي
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp) // 👈 إزاحة جسم الكارت لأسفل ليظهر الكوكب بارزاً بـ 16dp
+                .clip(RoundedCornerShape(24.dp))
+                .background(planetBg.copy(alpha = .8f))
+                .border(.5.dp, planetBorder, RoundedCornerShape(20.dp))
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 20.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+
+                // الهيدر: تم استبدال الصورة بـ Spacer بنفس عرضها لترك مكان فارغ لها في الـ Row
+                Row(
+                    modifier = Modifier.height(96.dp).padding(bottom = 24.dp), // الارتفاع المتبقي من الكوكب داخل الكارت (112 - 16)
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(112.dp).padding(end = 16.dp)) // 👈 حجز مساحة لعرض الكوكب
+                    Column {
+                        Text(
+                            text = planet.name,
+                            color = Color.White,
+                            fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                            fontSize = 18.sp,
+                            letterSpacing = .25.sp
+                        )
+                        Text(
+                            text = planet.subtitle,
+                            color = Color.LightGray,
+                            fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                            fontSize = 14.sp,
+                            letterSpacing = .25.sp
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                // الصف الأول من البيانات (الوزن و اليوم) مع خط رأسي بالمنتصف
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "You Would Weigh",
+                            value = planet.weight,
+                            icon = ImageVector.vectorResource(R.drawable.ic_weight)
+                        )
+                    }
+                    // الخط الفاصل الرأسي بـ 16dp padding أفقي من الطرفين
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .width(0.5.dp)
+                            .height(32.dp)
+                            .background(Color.White.copy(alpha = 0.16f))
+                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "One Day",
+                            value = planet.day,
+                            icon = ImageVector.vectorResource(R.drawable.ic_sun)
+                        )
+                    }
+                }
 
-            Box(contentAlignment = Alignment.Center) {
+                // الخط الفاصل الأفقي بين الصفوف
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .width(15.dp)
+                        .padding(vertical = 16.dp)
+                        .fillMaxWidth()
+                        .height(.5.dp)
                         .background(Color.White.copy(alpha = 0.16f))
-                        .align(Alignment.Center)
                 )
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    StatItem(
-                        title = "You Would Weigh",
-                        value = planet.weight,
-                        icon = ImageVector.vectorResource(R.drawable.ic_weight)
+
+                // الصف الثاني من البيانات (الحرارة و معلومات إضافية)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "Temperature",
+                            value = planet.temp,
+                            icon = ImageVector.vectorResource(R.drawable.ic_temperature),
+                            subValue = planet.tempInfo // 👈 نمرر النص الإضافي هنا
+                        )
+                    }
+                    // الخط الفاصل الرأسي بـ 16dp padding أفقي من الطرفين
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .width(0.5.dp)
+                            .height(32.dp)
+                            .background(Color.White.copy(alpha = 0.16f))
                     )
-                    StatItem(
-                        title = "One Day",
-                        value = planet.day,
-                        icon = ImageVector.vectorResource(R.drawable.ic_sun)
-                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        StatItem(
+                            title = "Additional info",
+                            value = planet.info,
+                            icon = ImageVector.vectorResource(R.drawable.ic_info)
+                        )
+                    }
                 }
-            }
-
-
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 16.dp)
-                    .fillMaxWidth()
-                    .height(.5.dp)
-                    .background(Color.White.copy(alpha = 0.16f))
-            )
-
-            Box {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(.5.dp)
-                        .background(Color.White.copy(alpha = 0.16f))
-                        .align(Alignment.Center)
-                )
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    StatItem(
-                        title = "Temperature",
-                        value = planet.temp,
-                        icon = ImageVector.vectorResource(R.drawable.ic_temperature)
-                    )
-                    StatItem(
-                        title = "Additional info",
-                        value = planet.info,
-                        icon = ImageVector.vectorResource(R.drawable.ic_info)
-                    )
-                }
-
             }
         }
+
+        // كوكب الأرض / الكواكب البارزة يتم رسمها فوق الـ Box بشكل مستقل لعدم اقتصاصها
+        Image(
+            painter = painterResource(id = planet.imageId),
+            contentDescription = planet.name,
+            modifier = Modifier
+                .padding(start = 16.dp) // نفس محاذاة البادينج الداخلي للكارت
+                .size(112.dp)
+        )
     }
 }
 
 @Composable
-fun StatItem(title: String, value: String, icon: ImageVector) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.width(140.dp)) {
+fun StatItem(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    subValue: String? = null // معامل اختياري للنصوص الإضافية مثل ملحوظة الطقس
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = Color.Gray,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = title,
                 color = Color.White.copy(alpha = .66f),
                 fontSize = 12.sp,
                 fontFamily = FontFamily(Font(R.font.rubik_regular)),
-                letterSpacing = .25.sp
+                letterSpacing = .25.sp,
+                style = TextStyle(
+                    platformStyle = PlatformTextStyle(
+                        includeFontPadding = false
+                    )
+                )
             )
+
+            // دمج الـ value والـ subValue داخل AnnotatedString لضمان انسيابية السطور وانثنائها معاً بدقة
+            val combinedValue = remember(value, subValue) {
+                buildAnnotatedString {
+                    append(value)
+                    if (!subValue.isNullOrEmpty()) {
+                        // إضافة ستايل أخف للنص الفرعي ليطابق التصميم تماماً
+                        withStyle(
+                            style = SpanStyle(
+                                color = Color.White.copy(alpha = 0.66f),
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily(Font(R.font.rubik_regular))
+                            )
+                        ) {
+                            append(", $subValue")
+                        }
+                    }
+                }
+            }
+
             Text(
-                text = value,
+                text = combinedValue,
                 color = Color.White.copy(alpha = .88f),
                 fontSize = 12.sp,
                 fontFamily = FontFamily(Font(R.font.rubik_medium)),
-                letterSpacing = .25.sp
+                letterSpacing = .25.sp,
+                style = TextStyle(
+                    platformStyle = PlatformTextStyle(
+                        includeFontPadding = false
+                    )
+                )
             )
         }
     }
@@ -414,7 +487,8 @@ fun BoxScope.AnimatedHeader(
 
                 translationY = lerp(startTranslateY, finalCenterY, progress)
                 alpha = 1f
-            }
+            },
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = "Our Solar System",
@@ -423,7 +497,6 @@ fun BoxScope.AnimatedHeader(
                 fontWeight = FontWeight(700),
                 fontSize = 24.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Earth is only one small part of a much larger story.",
                 color = Color.White,
@@ -447,7 +520,8 @@ fun BoxScope.AnimatedHeader(
 
                 translationY = lerp(startTranslateY, endTranslateY, progress) + currentPadding
                 alpha = 1f
-            }
+            },
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = "Earth",
@@ -456,7 +530,6 @@ fun BoxScope.AnimatedHeader(
                 fontWeight = FontWeight(700),
                 fontSize = 64.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "A tiny blue world drifting\nthrough the endless dark.",
                 color = Color.White,
@@ -520,7 +593,8 @@ fun BoxScope.AnimatedFooter(
 
                 // Translate Downwards: Push the footer below the screen edge as progress increases
                 val startTranslateY = 0f
-                val endTranslateY = screenHeightPx * 0.15f // 15% down is enough to hide it completely
+                val endTranslateY =
+                    screenHeightPx * 0.15f // 15% down is enough to hide it completely
                 translationY = lerp(startTranslateY, endTranslateY, progress)
 
                 // Fade Out: Progress from 1f (fully visible) to 0f (invisible)
