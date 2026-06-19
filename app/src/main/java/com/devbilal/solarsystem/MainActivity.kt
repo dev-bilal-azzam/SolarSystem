@@ -61,51 +61,21 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
-import com.devbilal.solarsystem.ui.theme.SolarSystemTheme
-import com.devbilal.solarsystem.ui.theme.bgEnd1
-import com.devbilal.solarsystem.ui.theme.bgEnd2
-import com.devbilal.solarsystem.ui.theme.bgEnd3
-import com.devbilal.solarsystem.ui.theme.bgStart1
-import com.devbilal.solarsystem.ui.theme.bgStart2
-import com.devbilal.solarsystem.ui.theme.bgStart3
-import com.devbilal.solarsystem.ui.theme.earthShadowColor
-import com.devbilal.solarsystem.ui.theme.planetBg
-import com.devbilal.solarsystem.ui.theme.planetBorder
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.lerp as lerpColor
 
-
-// --- Data Model for Planets Info ---
-data class PlanetData(
-    val name: String, val subtitle: String,
-    val weight: String, val day: String,
-    val temp: String, val tempInfo: String?,
-    val info: String, val imageId: Int,
-    val glowColor: Color // 👈 حقل جديد لتحديد لون إضاءة كل كوكب بشكل مخصص
-)
-
-val planetsList = listOf(
-    PlanetData("Saturn", "The Ring Master", "70kg → 74kg", "10.7 Hours", "-178°C", "Bring 3 jacket", "Lighter than water", R.drawable.saturn, Color(0xFFE2BF7D)),
-    PlanetData("Mars", "The next colony", "70kg → 27kg", "24.6 Hours", "-65°C", "Bring a jacket", "Red Dust Storms", R.drawable.mars, Color(0xFFFF6B4A)),
-    PlanetData("Mercury", "The Fastest Planet", "70kg → 26kg", "1,408 Hours", "167°C", null, "Birthday every 88 day", R.drawable.mercury, Color(0xFFD5D5D5)),
-    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", null, "Sun rises from West", R.drawable.venus, Color(0xFFE3973B)),
-    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Bring a jacket", "Has 95 moons", R.drawable.jupiter, Color(0xFFD8A070)),
-    PlanetData("Uranus", "The Lacy Iceberg", "70kg → 62kg", "17 Hours", "-224°C", "Bring 3 jacket", "diamond Shower", R.drawable.uranus, Color(0xFF70CFFF)),
-    PlanetData("Neptune", "The Windy World", "70kg → 79kg", "16 Hours", "-214°C", "Bring 3 jacket", "Wind faster than Sound", R.drawable.neptune, Color(0xFF4B70DD))
-)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SolarSystemTheme {
-                SolarSystemScreen()
-            }
+            SolarSystemScreen()
         }
     }
 }
 
+//region SolarSystemScreen
 @Composable
 fun SolarSystemScreen() {
     BoxWithConstraints(
@@ -124,12 +94,12 @@ fun SolarSystemScreen() {
             detectVerticalDragGestures(
                 onDragEnd = {
                     val target = if (isDragUp) 1f else 0f
-                    val animationSpec = spring<Float>(.6f, 12f)
+                    val animationSpec = spring<Float>(0.6f, 12f)
                     coroutineScope.launch { scrollProgress.animateTo(target, animationSpec) }
                 },
                 onDragCancel = {
                     val target = if (isDragUp) 1f else 0f
-                    val animationSpec = spring<Float>(.6f, 12f)
+                    val animationSpec = spring<Float>(0.6f, 12f)
                     coroutineScope.launch { scrollProgress.animateTo(target, animationSpec) }
                 },
                 onVerticalDrag = { change, dragAmount ->
@@ -173,7 +143,11 @@ fun SolarSystemScreen() {
         }
     }
 }
+//endregion
 
+
+
+//region AnimatedPlanetsList
 @Composable
 fun AnimatedPlanetsList(
     progressProvider: () -> Float,
@@ -200,7 +174,7 @@ fun AnimatedPlanetsList(
                 val progress = progressProvider()
                 translationY = lerp(startY, endY, progress)
             }
-            .padding(start = 24.dp, end = 24.dp)
+            .padding(horizontal = 24.dp)
     ) {
         Column(
             modifier = Modifier
@@ -215,7 +189,9 @@ fun AnimatedPlanetsList(
         }
     }
 }
+//endregion
 
+// region PlanetCard
 @Composable
 fun PlanetCard(planet: PlanetData) {
     Box(
@@ -228,8 +204,8 @@ fun PlanetCard(planet: PlanetData) {
                 .fillMaxWidth()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(planetBg.copy(alpha = .8f))
-                .border(.5.dp, planetBorder, RoundedCornerShape(24.dp))
+                .background(planetBg.copy(alpha = 0.8f))
+                .border(0.5.dp, planetBorder, RoundedCornerShape(24.dp))
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 20.dp)
         ) {
@@ -249,14 +225,14 @@ fun PlanetCard(planet: PlanetData) {
                             color = Color.White,
                             fontFamily = FontFamily(Font(R.font.rubik_bold)),
                             fontSize = 18.sp,
-                            letterSpacing = .25.sp
+                            letterSpacing = 0.25.sp
                         )
                         Text(
                             text = planet.subtitle,
                             color = Color.LightGray,
                             fontFamily = FontFamily(Font(R.font.rubik_regular)),
                             fontSize = 14.sp,
-                            letterSpacing = .25.sp
+                            letterSpacing = 0.25.sp
                         )
                     }
                 }
@@ -292,7 +268,7 @@ fun PlanetCard(planet: PlanetData) {
                     modifier = Modifier
                         .padding(vertical = 16.dp)
                         .fillMaxWidth()
-                        .height(.5.dp)
+                        .height(0.5.dp)
                         .background(Color.White.copy(alpha = 0.16f))
                 )
 
@@ -326,7 +302,6 @@ fun PlanetCard(planet: PlanetData) {
             }
         }
 
-        // 3. 🎯 تعديل هالة الكواكب الفردية: تلوين مخصص بـ blur = 100.dp
         Image(
             painter = painterResource(id = planet.imageId),
             contentDescription = planet.name,
@@ -366,10 +341,10 @@ fun StatItem(
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = title,
-                color = Color.White.copy(alpha = .66f),
+                color = Color.White.copy(alpha = 0.66f),
                 fontSize = 12.sp,
                 fontFamily = FontFamily(Font(R.font.rubik_regular)),
-                letterSpacing = .25.sp,
+                letterSpacing = 0.25.sp,
                 style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
             )
 
@@ -392,16 +367,18 @@ fun StatItem(
 
             Text(
                 text = combinedValue,
-                color = Color.White.copy(alpha = .88f),
+                color = Color.White.copy(alpha = 0.88f),
                 fontSize = 12.sp,
                 fontFamily = FontFamily(Font(R.font.rubik_medium)),
-                letterSpacing = .25.sp,
+                letterSpacing = 0.25.sp,
                 style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
             )
         }
     }
 }
+//endregion
 
+// region AnimatedBackground
 @Composable
 fun AnimatedBackground(progressProvider: () -> Float) {
     Box(
@@ -424,7 +401,9 @@ fun AnimatedBackground(progressProvider: () -> Float) {
         )
     }
 }
+//endregion
 
+// region AnimatedHeader
 @Composable
 fun BoxScope.AnimatedHeader(
     progressProvider: () -> Float,
@@ -442,7 +421,7 @@ fun BoxScope.AnimatedHeader(
             .fillMaxWidth(),
         contentAlignment = Alignment.TopCenter
     ) {
-        // 1. END STATE HEADER
+        // End State Header Configurations
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.graphicsLayer {
@@ -474,7 +453,7 @@ fun BoxScope.AnimatedHeader(
             )
         }
 
-        // 2. START STATE HEADER
+        // Start State Header Configurations
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.graphicsLayer {
@@ -506,7 +485,9 @@ fun BoxScope.AnimatedHeader(
         }
     }
 }
+//endregion
 
+// region AnimatedEarth
 @Composable
 fun BoxScope.AnimatedEarth(
     progressProvider: () -> Float,
@@ -533,19 +514,20 @@ fun BoxScope.AnimatedEarth(
                 scaleY = currentScale
                 translationY = lerp(startTranslateY, endTranslateY, progress)
             }
-            // 🎯 هنا الحل السحري: وضع الـ dropShadow بالصيغة الصحيحة لديك بعد الـ graphicsLayer
             .dropShadow(
                 shape = CircleShape,
                 shadow = Shadow(
                     radius = 50.dp,
                     color = earthShadowColor,
                     alpha = 0.25f,
-                    offset = DpOffset(0.dp, (-12).dp) // إزاحة علوية خفيفة للظل للهالة
+                    offset = DpOffset(0.dp, (-12).dp)
                 )
             )
     )
 }
+//endregion
 
+// region AnimatedFooter
 @Composable
 fun BoxScope.AnimatedFooter(
     progressProvider: () -> Float,
@@ -590,3 +572,44 @@ fun BoxScope.AnimatedFooter(
         )
     }
 }
+//endregion
+
+
+
+//region Data Models
+data class PlanetData(
+    val name: String,
+    val subtitle: String,
+    val weight: String,
+    val day: String,
+    val temp: String,
+    val tempInfo: String?,
+    val info: String,
+    val imageId: Int,
+    val glowColor: Color
+)
+//endregion
+
+//region Static Dataset
+val planetsList = listOf(
+    PlanetData("Saturn", "The Ring Master", "70kg → 74kg", "10.7 Hours", "-178°C", "Bring 3 jacket", "Lighter than water", R.drawable.saturn, Color(0xFFE2BF7D)),
+    PlanetData("Mars", "The next colony", "70kg → 27kg", "24.6 Hours", "-65°C", "Bring a jacket", "Red Dust Storms", R.drawable.mars, Color(0xFFFF6B4A)),
+    PlanetData("Mercury", "The Fastest Planet", "70kg → 26kg", "1,408 Hours", "167°C", null, "Birthday every 88 day", R.drawable.mercury, Color(0xFFD5D5D5)),
+    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", null, "Sun rises from West", R.drawable.venus, Color(0xFFE3973B)),
+    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Bring a jacket", "Has 95 moons", R.drawable.jupiter, Color(0xFFD8A070)),
+    PlanetData("Uranus", "The Lacy Iceberg", "70kg → 62kg", "17 Hours", "-224°C", "Bring 3 jacket", "diamond Shower", R.drawable.uranus, Color(0xFF70CFFF)),
+    PlanetData("Neptune", "The Windy World", "70kg → 79kg", "16 Hours", "-214°C", "Bring 3 jacket", "Wind faster than Sound", R.drawable.neptune, Color(0xFF4B70DD))
+)
+//endregion
+
+//region Color Constants
+val bgStart3 = Color(0xFF020D3C)
+val bgStart2 = Color(0xFF0F172A)
+val bgStart1 = Color(0xFF060816)
+val bgEnd3 = Color(0xFF030712)
+val bgEnd2 = Color(0xFF0F172A)
+val bgEnd1 = Color(0xFF1E1B4B)
+val planetBg = Color(0xFF0B1223)
+val planetBorder = Color(0xFF2F2E2E)
+val earthShadowColor = Color(0xFF4197E7)
+//endregion
