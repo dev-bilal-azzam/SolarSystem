@@ -276,7 +276,7 @@ fun AnimatedPlanetsList(
                             translationY = maxOf(stackedY, movingY)
                         }
                 ) {
-                    PlanetCard(planet = planet)
+                    PlanetCard(planet = planet) { scrollOffsetPx.value }
                 }
             }
         }
@@ -286,7 +286,10 @@ fun AnimatedPlanetsList(
 
 // region PlanetCard
 @Composable
-fun PlanetCard(planet: PlanetData) {
+fun PlanetCard(
+    planet: PlanetData,
+    scrollOffsetProvider: () -> Float
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -297,8 +300,13 @@ fun PlanetCard(planet: PlanetData) {
                 .fillMaxWidth()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(planetBg.copy(alpha = 0.8f))
                 .border(0.5.dp, planetBorder, RoundedCornerShape(24.dp))
+                .drawBehind {
+                    val progress = scrollOffsetProvider().coerceIn(0f, 1f)
+                    println("MAINACT , progress = $progress")
+                    val color = lerpColor(planetBg.copy(alpha = .8f), planetBg, progress)
+                    drawRoundRect(color = color)
+                }
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 20.dp)
         ) {
