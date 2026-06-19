@@ -90,7 +90,6 @@ fun SolarSystemScreen() {
         var isDragUp = remember { false }
         val maxScrollDistancePx = screenHeightPx * 0.65f
 
-        // 1. تعريف الـ Actions الخاصة بالـ Outer لتمريرها بدون Recomposition
         val handleOuterDrag: (Float) -> Unit = remember(maxScrollDistancePx) {
             { dragAmount ->
                 isDragUp = dragAmount < 0
@@ -143,7 +142,6 @@ fun SolarSystemScreen() {
                 screenHeightPx = screenHeightPx
             )
 
-            // 2. تمرير الـ Actions للـ Inner List
             AnimatedPlanetsList(
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx,
@@ -206,7 +204,6 @@ fun BoxScope.AnimatedHeader(
             .fillMaxWidth(),
         contentAlignment = Alignment.TopCenter
     ) {
-        // End State Header Configurations
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.graphicsLayer {
@@ -242,7 +239,6 @@ fun BoxScope.AnimatedHeader(
             )
         }
 
-        // Start State Header Configurations
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.graphicsLayer {
@@ -331,7 +327,8 @@ fun BoxScope.AnimatedFooter(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .align(Alignment.BottomCenter)
-            .padding(bottom = 48.dp)
+            .padding(bottom = 14.dp)
+            .graphicsLayer(clip = false)
             .graphicsLayer {
                 val progress = progressProvider()
                 val startTranslateY = 0f
@@ -344,7 +341,7 @@ fun BoxScope.AnimatedFooter(
         Column(
             modifier = Modifier.padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy((-12).dp)
+            verticalArrangement = Arrangement.spacedBy((-4).dp)
         ) {
 
             Icon(
@@ -370,6 +367,7 @@ fun BoxScope.AnimatedFooter(
 
         Text(
             text = "Swipe Up To Explore",
+            modifier = Modifier.padding(10.dp),
             color = Color.White,
             fontFamily = FontFamily(Font(R.font.rubik_medium)),
             fontWeight = FontWeight(500),
@@ -392,7 +390,6 @@ fun BoxScope.AnimatedFooter(
 fun AnimatedPlanetsList(
     progressProvider: () -> Float,
     screenHeightPx: Float,
-    // استقبال الـ Actions الخاصة بالـ Outer
     onOuterDrag: (Float) -> Unit,
     onOuterSettle: (Boolean) -> Unit
 ) {
@@ -418,9 +415,8 @@ fun AnimatedPlanetsList(
     val gestureModifier = Modifier.pointerInput(Unit) {
         detectVerticalDragGestures(
             onDragEnd = {
-                // إذا كان الـ outer شغال أصلاً (السكرين بتنزل)، بنخلي الـ outer يكمل شغلته
                 if (progressProvider() < 0.99f) {
-                    onOuterSettle(isDragUp)
+                    onOuterSettle(false)
                     return@detectVerticalDragGestures
                 }
 
@@ -444,7 +440,7 @@ fun AnimatedPlanetsList(
             },
             onDragCancel = {
                 if (progressProvider() < 0.99f) {
-                    onOuterSettle(isDragUp)
+                    onOuterSettle(false)
                     return@detectVerticalDragGestures
                 }
 
@@ -466,9 +462,8 @@ fun AnimatedPlanetsList(
                 change.consume()
                 isDragUp = dragAmount < 0
 
-                // 1. لو إحنا بالفعل بنقفل السكرين، نمرر كل الحركة للـ Outer فوراً
                 if (progressProvider() < 0.99f) {
-                    onOuterDrag(dragAmount)
+                    onOuterDrag(kotlin.math.abs(dragAmount))
                     return@detectVerticalDragGestures
                 }
 
@@ -482,21 +477,13 @@ fun AnimatedPlanetsList(
                 val currentScroll = scrollOffsetPx.value
                 val newScrollRaw = currentScroll - dragAmount
 
-                // 2. فحص الحدود (Boundaries) لتمرير الـ Overscroll للـ Outer
                 if (newScrollRaw < 0f) {
-                    // وصلنا لأول عنصر ولسه بنسحب لتحت
                     coroutineScope.launch { scrollOffsetPx.snapTo(0f) }
-                    val unconsumedDrag = -newScrollRaw // استخراج الجزء الفائض من السحب
-                    onOuterDrag(unconsumedDrag)
-
+                    onOuterDrag(kotlin.math.abs(dragAmount))
                 } else if (newScrollRaw > maxScroll) {
-                    // وصلنا لآخر عنصر ولسه بنسحب لفوق
                     coroutineScope.launch { scrollOffsetPx.snapTo(maxScroll) }
-                    val unconsumedDrag = -(newScrollRaw - maxScroll)
-                    onOuterDrag(unconsumedDrag)
-
+                    onOuterDrag(kotlin.math.abs(dragAmount))
                 } else {
-                    // السحب العادي داخل عناصر الـ Inner
                     coroutineScope.launch {
                         scrollOffsetPx.snapTo(newScrollRaw)
                     }
@@ -505,7 +492,6 @@ fun AnimatedPlanetsList(
         )
     }
 
-    // باقي الكود كما هو تماماً بدون تعديل ...
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -517,7 +503,6 @@ fun AnimatedPlanetsList(
             .then(gestureModifier)
             .padding(horizontal = 24.dp)
     ) {
-        // ...
         Box(
             modifier = Modifier
                 .fillMaxSize()
