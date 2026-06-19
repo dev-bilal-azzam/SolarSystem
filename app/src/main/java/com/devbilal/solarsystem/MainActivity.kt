@@ -33,11 +33,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -63,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.lerp as lerpColor
+
 
 
 class MainActivity : ComponentActivity() {
@@ -159,7 +166,7 @@ fun AnimatedPlanetsList(
     val coroutineScope = rememberCoroutineScope()
 
     val spacingPx = with(density) { 16.dp.toPx() }
-    val stackOffsetPx = with(density) { 16.dp.toPx() }
+    val stackOffsetPx = with(density) { 14.dp.toPx() }
     val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
     val listSpacingPx = with(density) { 24.dp.toPx() }
 
@@ -276,20 +283,43 @@ fun AnimatedPlanetsList(
                             translationY = maxOf(stackedY, movingY)
                         }
                 ) {
-                    PlanetCard(planet = planet) {
-                        val currentScroll = scrollOffsetPx.value
-                        var defaultY = 0f
-                        for (i in 0 until index) {
-                            defaultY += cardHeightsPx[i] + spacingPx
-                        }
-                        val stackedY = index * stackOffsetPx
+                    PlanetCard(
+                        planet = planet,
+                        // الـ Provider بتاعك القديم زي ما هو عشان لون خلفية الكارد ميبُظش
+                        scrollOffsetProvider = {
+                            val currentScroll = scrollOffsetPx.value
+                            var defaultY = 0f
+                            for (i in 0 until index) {
+                                defaultY += cardHeightsPx[i] + spacingPx
+                            }
+                            val stackedY = index * stackOffsetPx
+                            val distanceToStack = defaultY - stackedY
+                            if (distanceToStack <= 0f) 0f
+                            else (currentScroll / distanceToStack).coerceIn(0f, 1f)
+                        },
+                        // الـ Provider الجديد اللي هيحسب التعتيم بناءً على "مين اللي طلع فوقي"
+                        dimmingProgressProvider = {
+                            val currentScroll = scrollOffsetPx.value
+                            var defaultY = 0f
+                            for (i in 0 until index) {
+                                defaultY += cardHeightsPx[i] + spacingPx
+                            }
+                            val stackedY = index * stackOffsetPx
 
-                        // How far has this specific card scrolled into its stacked position?
-                        // 0.0f means it hasn't reached the stack yet. 1.0f means it is perfectly resting on the stack.
-                        val distanceToStack = defaultY - stackedY
-                        if (distanceToStack <= 0f) 0f
-                        else (currentScroll / distanceToStack).coerceIn(0f, 1f)
-                    }
+                            // 1. النقطة اللي الكارد ده بيوصل فيها للـ stack ويقف (هنا بيكون لسه هو اللي على الوش)
+                            val stackPoint = defaultY - stackedY
+
+                            // 2. النقطة اللي الكارد اللي *بعده* هيوصل فيها ويغطيه بالكامل
+                            val cardHeight = if (cardHeightsPx[index] > 0) cardHeightsPx[index] else 800f // fallback أولي
+                            val nextStackPoint = stackPoint + cardHeight + spacingPx - stackOffsetPx
+
+                            when {
+                                currentScroll <= stackPoint -> 0f // الكارد لسه بيتحرك أو لسه واصل للوش حالاً (منور تماماً)
+                                currentScroll >= nextStackPoint -> 1f // الكارد اللي بعده طلع غطاه بالكامل (مطفي)
+                                else -> (currentScroll - stackPoint) / (nextStackPoint - stackPoint) // كارد تاني طالع يغطيه (بيطفي تدريجياً)
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -301,28 +331,31 @@ fun AnimatedPlanetsList(
 @Composable
 fun PlanetCard(
     planet: PlanetData,
-    scrollOffsetProvider: () -> Float
+    scrollOffsetProvider: () -> Float,
+    dimmingProgressProvider: () -> Float
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp)
-    ) {
+    // احسب الـ dimming مرة واحدة هنا
+    val dimmingProgress = dimmingProgressProvider()
+    // ده الـ Alpha اللي هنقلله من الألوان (مثلاً من 1f لـ 0.5f)
+    val contentAlpha = 1f - (dimmingProgress * 0.5f).coerceIn(0f, 1f)
+
+    Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .border(0.5.dp, planetBorder, RoundedCornerShape(24.dp))
+                .border(0.5.dp, planetBorder.copy(alpha = contentAlpha), RoundedCornerShape(24.dp))
                 .drawBehind {
                     val progress = scrollOffsetProvider()
-                    val color = lerpColor(planetBg.copy(alpha = 0.8f), planetBg, progress)
+                    val color = lerpColor(planetBg.copy(alpha = 0.8f * contentAlpha), planetBg.copy(alpha = contentAlpha), progress)
                     drawRoundRect(color = color)
                 }
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 20.dp)
         ) {
-            Column {
+            // هنا استخدم الـ contentAlpha في ألوان النصوص والـ Icons
+            Column(modifier = Modifier.alpha(contentAlpha)) {
                 Row(
                     modifier = Modifier
                         .height(96.dp)
@@ -415,6 +448,8 @@ fun PlanetCard(
             }
         }
 
+        // الصورة والشادو بتوعها مش هيتأثروا بالـ alpha دي لأننا حطيناها جوه الـ Column بس
+        // لو عاوز الصورة كمان تبهت، حط لها Modifier.alpha(contentAlpha)
         Image(
             painter = painterResource(id = planet.imageId),
             contentDescription = planet.name,
@@ -429,6 +464,7 @@ fun PlanetCard(
                         alpha = 0.5f,
                     )
                 )
+                .alpha(contentAlpha)
         )
     }
 }
@@ -529,6 +565,12 @@ fun BoxScope.AnimatedHeader(
     val earthBaseSizePx = remember(density, screenWidth) { with(density) { (screenWidth * 0.55f).toPx() } }
     val startPaddingPx = remember(density) { with(density) { 56.dp.toPx() } }
     val endPaddingPx = remember(density) { with(density) { 98.dp.toPx() } }
+    val shadowOffsetPx = remember(density) { with(density) { 4.dp.toPx() } }
+    val shadow = androidx.compose.ui.graphics.Shadow(
+        color = Color.White.copy(alpha = .16f),
+        blurRadius = 12f,
+        offset = Offset(-shadowOffsetPx, shadowOffsetPx)
+    )
 
     Box(
         modifier = Modifier
@@ -551,12 +593,16 @@ fun BoxScope.AnimatedHeader(
             },
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+
             Text(
                 text = "Our Solar System",
                 color = Color.White,
                 fontFamily = FontFamily(Font(R.font.rubik_bold)),
                 fontWeight = FontWeight(700),
-                fontSize = 24.sp
+                fontSize = 24.sp,
+                style = TextStyle(
+                    shadow = shadow
+                )
             )
             Text(
                 text = "Earth is only one small part of a much larger story.",
@@ -587,7 +633,10 @@ fun BoxScope.AnimatedHeader(
                 color = Color.White,
                 fontFamily = FontFamily(Font(R.font.rubik_bold)),
                 fontWeight = FontWeight(700),
-                fontSize = 64.sp
+                fontSize = 64.sp,
+                style = TextStyle(
+                    shadow = shadow
+                )
             )
             Text(
                 text = "A tiny blue world drifting\nthrough the endless dark.",
@@ -648,6 +697,8 @@ fun BoxScope.AnimatedFooter(
     progressProvider: () -> Float,
     screenHeightPx: Float
 ) {
+    val density = LocalDensity.current
+    val shadowOffsetPx = remember(density) { with(density) { 4.dp.toPx() } }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -667,14 +718,26 @@ fun BoxScope.AnimatedFooter(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy((-12).dp)
         ) {
-            repeat(3) {
-                Icon(
-                    painter = arrowPainter,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+
+            Icon(
+                painter = arrowPainter,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+            Icon(
+                painter = arrowPainter,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = .78f),
+                modifier = Modifier.size(24.dp)
+            )
+            Icon(
+                painter = arrowPainter,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = .5f),
+                modifier = Modifier.size(24.dp)
+            )
+
         }
 
         Text(
@@ -683,7 +746,14 @@ fun BoxScope.AnimatedFooter(
             fontFamily = FontFamily(Font(R.font.rubik_medium)),
             fontWeight = FontWeight(500),
             fontSize = 16.sp,
-            letterSpacing = 0.25.sp
+            letterSpacing = 0.25.sp,
+            style = TextStyle(
+                shadow = androidx.compose.ui.graphics.Shadow(
+                    color = Color.White.copy(alpha = .44f),
+                    blurRadius = 16f,
+                    offset = Offset(0f, shadowOffsetPx)
+                )
+            )
         )
     }
 }
