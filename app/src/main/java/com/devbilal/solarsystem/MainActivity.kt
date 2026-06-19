@@ -276,7 +276,20 @@ fun AnimatedPlanetsList(
                             translationY = maxOf(stackedY, movingY)
                         }
                 ) {
-                    PlanetCard(planet = planet) { scrollOffsetPx.value }
+                    PlanetCard(planet = planet) {
+                        val currentScroll = scrollOffsetPx.value
+                        var defaultY = 0f
+                        for (i in 0 until index) {
+                            defaultY += cardHeightsPx[i] + spacingPx
+                        }
+                        val stackedY = index * stackOffsetPx
+
+                        // How far has this specific card scrolled into its stacked position?
+                        // 0.0f means it hasn't reached the stack yet. 1.0f means it is perfectly resting on the stack.
+                        val distanceToStack = defaultY - stackedY
+                        if (distanceToStack <= 0f) 0f
+                        else (currentScroll / distanceToStack).coerceIn(0f, 1f)
+                    }
                 }
             }
         }
@@ -302,9 +315,8 @@ fun PlanetCard(
                 .clip(RoundedCornerShape(24.dp))
                 .border(0.5.dp, planetBorder, RoundedCornerShape(24.dp))
                 .drawBehind {
-                    val progress = scrollOffsetProvider().coerceIn(0f, 1f)
-                    println("MAINACT , progress = $progress")
-                    val color = lerpColor(planetBg.copy(alpha = .8f), planetBg, progress)
+                    val progress = scrollOffsetProvider()
+                    val color = lerpColor(planetBg.copy(alpha = 0.8f), planetBg, progress)
                     drawRoundRect(color = color)
                 }
                 .padding(horizontal = 16.dp)
