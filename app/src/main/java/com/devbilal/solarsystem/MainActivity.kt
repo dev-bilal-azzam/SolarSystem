@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -66,13 +67,18 @@ import androidx.compose.ui.graphics.lerp as lerpColor
 data class PlanetData(
     val name: String, val subtitle: String,
     val weight: String, val day: String,
-    val temp: String, val info: String
+    val temp: String, val tempInfo: String?,
+    val info: String, val imageId: Int
 )
 
 val planetsList = listOf(
-    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", "Sun rises from West"),
-    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Has 79 moons"),
-    PlanetData("Saturn", "The Ringed Jewel", "70kg → 74kg", "10.7 Hours", "-140°C", "Could float in water")
+    PlanetData("Saturn", "The Ring Master", "70kg → 74kg", "10.7 Hours", "-178°C", "Bring 3 jacket", "Lighter than water", R.drawable.saturn),
+    PlanetData("Mars", "The next colony", "70kg → 27kg", "24.6 Hours", "-65°C", "Bring a jacket", "Red Dust Storms", R.drawable.mars),
+    PlanetData("Mercury", "The Fastest Planet", "70kg → 26kg", "1,408 Hours", "167°C", null, "Birthday every 88 day", R.drawable.mercury),
+    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", null, "Sun rises from West", R.drawable.venus),
+    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Bring a jacket", "Has 95 moons", R.drawable.jupiter),
+    PlanetData("Uranus", "The Lacy Iceberg", "70kg → 62kg", "17 Hours", "-224°C", "Bring 3 jacket", "diamond Shower", R.drawable.uranus),
+    PlanetData("Neptune", "The Windy World", "70kg → 79kg", "16 Hours", "-214°C", "Bring 3 jacket", "Wind faster than Sound", R.drawable.neptune)
 )
 
 class MainActivity : ComponentActivity() {
@@ -174,21 +180,23 @@ fun AnimatedPlanetsList(
     val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
     val spacingPx = with(density) { 24.dp.toPx() }
 
-    // حساب الموضع الفعلي أسفل الأرض بدقة تامة في الحالتين:
-    // 1. في الـ Start: الأرض عند (screenHeightPx * 0.65) وبحجم مضروب في 3.22 (تمدد من المركز)
+    // 1. حساب الإحداثيات أسفل الأرض في الـ Start والـ End (نفس كودك بالظبط)
     val startEarthBottomPx = (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
     val startY = startEarthBottomPx + spacingPx
 
-    // 2. في الـ End: الأرض عند (screenHeightPx * 0.12) وبحجمها الطبيعي 1.0
     val endEarthBottomPx = (screenHeightPx * 0.12f) + earthBaseSizePx
     val endY = endEarthBottomPx + spacingPx
 
+    // 🎯 الحل السحري: حساب الارتفاع الفعلي المتاح للقائمة في الـ End State وتحويله لـ Dp
+    val visibleHeightDp = with(density) { (screenHeightPx - endY).toDp() }
+
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .height(visibleHeightDp) // 👈 هنا حددنا الارتفاع الحقيقي المتاح للقائمة بدلاً من fillMaxSize
             .graphicsLayer {
                 val progress = progressProvider()
-                // الحركة تتبع الأرض خطوة بخطوة صعوداً وهبوطاً وبدون أي تغيير في الـ Alpha
+                // الحركة الموضعية النقية تتبع الأرض صعوداً وهبوطاً كتفاً بكتف
                 translationY = lerp(startY, endY, progress)
             }
             .padding(start = 24.dp, end = 24.dp)
@@ -196,7 +204,7 @@ fun AnimatedPlanetsList(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState()), // 👈 الآن سيعمل الـ Scroll فوراً لأن المحتوى أكبر من الـ Viewport
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             planetsList.forEach { planet ->
@@ -212,18 +220,18 @@ fun PlanetCard(planet: PlanetData) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0xFF161622))
             .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-            .padding(20.dp)
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 20.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
-                    painter = painterResource(id = R.drawable.earth),
+                    painter = painterResource(id = planet.imageId),
                     contentDescription = planet.name,
-                    modifier = Modifier.size(72.dp)
+                    modifier = Modifier.size(112.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
@@ -231,56 +239,73 @@ fun PlanetCard(planet: PlanetData) {
                         text = planet.name,
                         color = Color.White,
                         fontFamily = FontFamily(Font(R.font.rubik_bold)),
-                        fontSize = 22.sp
+                        fontSize = 18.sp,
+                        letterSpacing = .25.sp
                     )
                     Text(
                         text = planet.subtitle,
                         color = Color.LightGray,
-                        fontFamily = FontFamily(Font(R.font.lily_regular)),
-                        fontSize = 14.sp
+                        fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                        fontSize = 14.sp,
+                        letterSpacing = .25.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(15.dp)
+                        .background(Color.White.copy(alpha = 0.16f))
+                        .align(Alignment.Center)
+                )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatItem(
+                        title = "You Would Weigh",
+                        value = planet.weight,
+                        icon = ImageVector.vectorResource(R.drawable.ic_weight)
+                    )
+                    StatItem(
+                        title = "One Day",
+                        value = planet.day,
+                        icon = ImageVector.vectorResource(R.drawable.ic_sun)
+                    )
+                }
+            }
+
+
             Box(
                 modifier = Modifier
+                    .padding(vertical = 16.dp)
                     .fillMaxWidth()
-                    .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.05f))
+                    .height(.5.dp)
+                    .background(Color.White.copy(alpha = 0.16f))
             )
-            Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatItem(
-                    title = "You Would Weigh",
-                    value = planet.weight,
-                    icon = ImageVector.vectorResource(R.drawable.ic_weight)
+            Box {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(.5.dp)
+                        .background(Color.White.copy(alpha = 0.16f))
+                        .align(Alignment.Center)
                 )
-                StatItem(
-                    title = "One Day",
-                    value = planet.day,
-                    icon = ImageVector.vectorResource(R.drawable.ic_sun)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatItem(
-                    title = "Temperature",
-                    value = planet.temp,
-                    icon = ImageVector.vectorResource(R.drawable.ic_temperature)
-                )
-                StatItem(
-                    title = "Additional info",
-                    value = planet.info,
-                    icon = ImageVector.vectorResource(R.drawable.ic_info)
-                )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatItem(
+                        title = "Temperature",
+                        value = planet.temp,
+                        icon = ImageVector.vectorResource(R.drawable.ic_temperature)
+                    )
+                    StatItem(
+                        title = "Additional info",
+                        value = planet.info,
+                        icon = ImageVector.vectorResource(R.drawable.ic_info)
+                    )
+                }
+
             }
         }
     }
@@ -293,21 +318,23 @@ fun StatItem(title: String, value: String, icon: ImageVector) {
             imageVector = icon,
             contentDescription = null,
             tint = Color.Gray,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(
                 text = title,
-                color = Color.Gray,
-                fontSize = 10.sp,
-                fontFamily = FontFamily(Font(R.font.rubik_medium))
+                color = Color.White.copy(alpha = .66f),
+                fontSize = 12.sp,
+                fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                letterSpacing = .25.sp
             )
             Text(
                 text = value,
-                color = Color.White,
+                color = Color.White.copy(alpha = .88f),
                 fontSize = 12.sp,
-                fontFamily = FontFamily(Font(R.font.rubik_bold))
+                fontFamily = FontFamily(Font(R.font.rubik_medium)),
+                letterSpacing = .25.sp
             )
         }
     }
