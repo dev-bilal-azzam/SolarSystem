@@ -214,7 +214,7 @@ fun BoxScope.AnimatedFooter(
             }
     ) {
         // 3 Arrows Indicator
-        val arrowPainter = painterResource(id = R.drawable.arrow_up)
+        val arrowPainter = painterResource(id = R.drawable.ic_arrow_up)
         Column(
             modifier = Modifier.padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
