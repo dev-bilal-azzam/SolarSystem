@@ -1,6 +1,5 @@
 package com.devbilal.solarsystem
 
-import android.graphics.BlurMaskFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,14 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.dropShadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -62,7 +57,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,6 +68,7 @@ import com.devbilal.solarsystem.ui.theme.bgEnd3
 import com.devbilal.solarsystem.ui.theme.bgStart1
 import com.devbilal.solarsystem.ui.theme.bgStart2
 import com.devbilal.solarsystem.ui.theme.bgStart3
+import com.devbilal.solarsystem.ui.theme.earthShadowColor
 import com.devbilal.solarsystem.ui.theme.planetBg
 import com.devbilal.solarsystem.ui.theme.planetBorder
 import kotlinx.coroutines.launch
@@ -210,7 +205,8 @@ fun AnimatedPlanetsList(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             planetsList.forEach { planet ->
@@ -244,7 +240,9 @@ fun PlanetCard(planet: PlanetData) {
                         .padding(bottom = 24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(112.dp).padding(end = 16.dp))
+                    Spacer(modifier = Modifier
+                        .width(112.dp)
+                        .padding(end = 16.dp))
                     Column {
                         Text(
                             text = planet.name,
@@ -535,6 +533,16 @@ fun BoxScope.AnimatedEarth(
                 scaleY = currentScale
                 translationY = lerp(startTranslateY, endTranslateY, progress)
             }
+            // 🎯 هنا الحل السحري: وضع الـ dropShadow بالصيغة الصحيحة لديك بعد الـ graphicsLayer
+            .dropShadow(
+                shape = CircleShape,
+                shadow = Shadow(
+                    radius = 50.dp,
+                    color = earthShadowColor,
+                    alpha = 0.25f,
+                    offset = DpOffset(0.dp, (-12).dp) // إزاحة علوية خفيفة للظل للهالة
+                )
+            )
     )
 }
 
