@@ -197,7 +197,7 @@ fun AnimatedPlanetsList(
                 }
 
                 coroutineScope.launch {
-                    scrollOffsetPx.animateTo(target, spring(0.75f, 15f))
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
                 }
             },
             onDragCancel = {
@@ -214,7 +214,7 @@ fun AnimatedPlanetsList(
                 val target = snapPoints.minByOrNull { kotlin.math.abs(it - currentScroll) } ?: 0f
 
                 coroutineScope.launch {
-                    scrollOffsetPx.animateTo(target, spring(0.75f, 15f))
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
                 }
             },
             onVerticalDrag = { change, dragAmount ->
@@ -310,7 +310,7 @@ fun PlanetCard(planet: PlanetData) {
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 20.dp)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column {
                 Row(
                     modifier = Modifier
                         .height(96.dp)
