@@ -23,13 +23,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -44,6 +43,7 @@ import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -147,6 +147,7 @@ fun SolarSystemScreen() {
 
 
 
+
 //region AnimatedPlanetsList
 @Composable
 fun AnimatedPlanetsList(
@@ -155,16 +156,88 @@ fun AnimatedPlanetsList(
 ) {
     val density = LocalDensity.current
     val screenWidth = LocalWindowInfo.current.containerDpSize.width
+    val coroutineScope = rememberCoroutineScope()
+
+    // Constants for list and stack styling
+    val spacingPx = with(density) { 16.dp.toPx() }
+    val stackOffsetPx = with(density) { 16.dp.toPx() }
     val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
-    val spacingPx = with(density) { 24.dp.toPx() }
+    val listSpacingPx = with(density) { 24.dp.toPx() }
 
+    // Screen bound calculations
     val startEarthBottomPx = (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
-    val startY = startEarthBottomPx + spacingPx
-
+    val startY = startEarthBottomPx + listSpacingPx
     val endEarthBottomPx = (screenHeightPx * 0.12f) + earthBaseSizePx
-    val endY = endEarthBottomPx + spacingPx
-
+    val endY = endEarthBottomPx + listSpacingPx
     val visibleHeightDp = with(density) { (screenHeightPx - endY).toDp() }
+
+    // 🎯 التعديل الأول: استخدام mutableStateListOf ليتفاعل الـ UI فور حساب الأطوال الحقيقية
+    val cardHeightsPx = remember { mutableStateListOf<Float>().apply { repeat(planetsList.size) { add(0f) } } }
+    val scrollOffsetPx = remember { Animatable(0f) }
+    var isDragUp = remember { false }
+
+    val gestureModifier = Modifier.pointerInput(Unit) {
+        detectVerticalDragGestures(
+            onDragEnd = {
+                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
+
+                // Calculate dynamic snapping points based on exact card heights
+                val snapPoints = FloatArray(planetsList.size)
+                var currentY = 0f
+                for (i in planetsList.indices) {
+                    snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
+                    currentY += cardHeightsPx[i] + spacingPx
+                }
+
+                val currentScroll = scrollOffsetPx.value
+                val target = if (isDragUp) {
+                    snapPoints.firstOrNull { it >= currentScroll } ?: snapPoints.last()
+                } else {
+                    snapPoints.lastOrNull { it <= currentScroll } ?: snapPoints.first()
+                }
+
+                coroutineScope.launch {
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 15f))
+                }
+            },
+            onDragCancel = {
+                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
+
+                val snapPoints = FloatArray(planetsList.size)
+                var currentY = 0f
+                for (i in planetsList.indices) {
+                    snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
+                    currentY += cardHeightsPx[i] + spacingPx
+                }
+
+                val currentScroll = scrollOffsetPx.value
+                val target = snapPoints.minByOrNull { kotlin.math.abs(it - currentScroll) } ?: 0f
+
+                coroutineScope.launch {
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 15f))
+                }
+            },
+            onVerticalDrag = { change, dragAmount ->
+                if (progressProvider() < 0.99f) return@detectVerticalDragGestures
+
+                change.consume()
+                isDragUp = dragAmount < 0
+
+                // Calculate boundaries dynamically
+                val lastIndex = planetsList.size - 1
+                var lastDefaultY = 0f
+                for (i in 0 until lastIndex) {
+                    lastDefaultY += cardHeightsPx[i] + spacingPx
+                }
+                val maxScroll = maxOf(0f, lastDefaultY - (lastIndex * stackOffsetPx))
+
+                coroutineScope.launch {
+                    val newScroll = (scrollOffsetPx.value - dragAmount).coerceIn(0f, maxScroll)
+                    scrollOffsetPx.snapTo(newScroll)
+                }
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -174,17 +247,45 @@ fun AnimatedPlanetsList(
                 val progress = progressProvider()
                 translationY = lerp(startY, endY, progress)
             }
+            .then(gestureModifier)
             .padding(horizontal = 24.dp)
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(bottom = 24.dp)
         ) {
-            planetsList.forEach { planet ->
-                PlanetCard(planet = planet)
+            planetsList.forEachIndexed { index, planet ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { layoutCoordinates ->
+                            val height = layoutCoordinates.size.height.toFloat()
+                            if (cardHeightsPx[index] != height) {
+                                cardHeightsPx[index] = height
+                            }
+                        }
+                        .graphicsLayer {
+                            alpha = if (cardHeightsPx[index] == 0f) 0f else 1f
+
+                            val currentScroll = scrollOffsetPx.value
+
+                            // Normal position calculation based on measured heights
+                            var defaultY = 0f
+                            for (i in 0 until index) {
+                                defaultY += cardHeightsPx[i] + spacingPx
+                            }
+
+                            // 16dp stacked offset calculation
+                            val stackedY = index * stackOffsetPx
+                            val movingY = defaultY - currentScroll
+
+                            // Stacking behavior happens dynamically here
+                            translationY = maxOf(stackedY, movingY)
+                        }
+                ) {
+                    PlanetCard(planet = planet)
+                }
             }
         }
     }
@@ -319,7 +420,9 @@ fun PlanetCard(planet: PlanetData) {
         )
     }
 }
+//endregion
 
+// region StatItem
 @Composable
 fun StatItem(
     title: String,
