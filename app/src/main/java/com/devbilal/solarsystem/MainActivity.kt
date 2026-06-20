@@ -29,7 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -38,14 +38,16 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -64,8 +66,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import androidx.compose.ui.graphics.lerp as lerpColor
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -115,7 +117,7 @@ fun SolarSystemScreen() {
             }
         }
 
-        val gestureModifier = Modifier.pointerInput(Unit) {
+        val dragListenerModifier = Modifier.pointerInput(Unit) {
             detectVerticalDragGestures(
                 onDragEnd = { handleOuterSettle(isDragUp) },
                 onDragCancel = { handleOuterSettle(isDragUp) },
@@ -129,10 +131,9 @@ fun SolarSystemScreen() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(gestureModifier)
+                .then(dragListenerModifier)
         ) {
             AnimatedBackground(progressProvider = { scrollProgress.value })
-
 
             AnimatedEarth(
                 progressProvider = { scrollProgress.value },
@@ -148,6 +149,7 @@ fun SolarSystemScreen() {
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx
             )
+
             AnimatedPlanetsList(
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx,
@@ -158,7 +160,6 @@ fun SolarSystemScreen() {
     }
 }
 //endregion
-
 
 // region AnimatedBackground
 @Composable
@@ -249,7 +250,7 @@ fun BoxScope.AnimatedHeader(
                 val progress = progressProvider()
                 val endTranslateY = -screenHeightPx * 0.4f
                 translationY = lerp(startPaddingPx, endTranslateY, progress)
-                alpha = 1f - progress
+                alpha = (1f - progress).coerceIn(0f, 1f)
             },
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -295,16 +296,10 @@ fun BoxScope.AnimatedEarth(
             .statusBarsPadding()
             .graphicsLayer {
                 val progress = progressProvider()
-                val startScale = 3.8f
-                val endScale = 1.0f
-
-                val currentScale = lerp(startScale, endScale, progress)
+                val currentScale = lerp(3.8f, 1.0f, progress)
                 scaleX = currentScale
                 scaleY = currentScale
-
-                val startTranslateY = screenHeightPx * 0.65f
-
-                translationY = lerp(startTranslateY, endPaddingPx, progress)
+                translationY = lerp(screenHeightPx * 0.65f, endPaddingPx, progress)
             }
             .dropShadow(
                 shape = CircleShape,
@@ -319,8 +314,7 @@ fun BoxScope.AnimatedEarth(
             // if we combined both before the shadow it would be cropped
             .graphicsLayer {
                 val progress = progressProvider()
-                alpha = 1.5f - progress
-
+                alpha = (1.5f - progress).coerceIn(0f, 1f)
             }
     )
 }
@@ -342,9 +336,7 @@ fun BoxScope.AnimatedFooter(
             .graphicsLayer(clip = false)
             .graphicsLayer {
                 val progress = progressProvider()
-                val startTranslateY = 0f
-                val endTranslateY = screenHeightPx * 0.15f
-                translationY = lerp(startTranslateY, endTranslateY, progress)
+                translationY = lerp(0f, screenHeightPx * 0.15f, progress)
                 alpha = (1f - (progress * 1.5f)).coerceIn(0f, 1f)
             }
     ) {
@@ -416,12 +408,11 @@ fun AnimatedPlanetsList(
     val endY = endEarthBottomPx + listSpacingPx
     val visibleHeightDp = with(density) { (screenHeightPx - endY).toDp() }
 
-    val cardHeightsPx =
-        remember { mutableStateListOf<Float>().apply { repeat(planetsList.size) { add(0f) } } }
+    val cachedHeightsPx = remember { FloatArray(planetsList.size) }
     val scrollOffsetPx = remember { Animatable(0f) }
     var isDragUp = remember { false }
 
-    val gestureModifier = Modifier.pointerInput(Unit) {
+    val dragListenerModifier = Modifier.pointerInput(Unit) {
         detectVerticalDragGestures(
             onDragEnd = {
                 if (progressProvider() < 0.99f) {
@@ -433,7 +424,7 @@ fun AnimatedPlanetsList(
                 var currentY = 0f
                 for (i in planetsList.indices) {
                     snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
-                    currentY += cardHeightsPx[i] + spacingPx
+                    currentY += cachedHeightsPx[i] + spacingPx
                 }
 
                 val currentScroll = scrollOffsetPx.value
@@ -457,11 +448,11 @@ fun AnimatedPlanetsList(
                 var currentY = 0f
                 for (i in planetsList.indices) {
                     snapPoints[i] = maxOf(0f, currentY - (i * stackOffsetPx))
-                    currentY += cardHeightsPx[i] + spacingPx
+                    currentY += cachedHeightsPx[i] + spacingPx
                 }
 
                 val currentScroll = scrollOffsetPx.value
-                val target = snapPoints.minByOrNull { kotlin.math.abs(it - currentScroll) } ?: 0f
+                val target = snapPoints.minByOrNull { abs(it - currentScroll) } ?: 0f
 
                 coroutineScope.launch {
                     scrollOffsetPx.animateTo(target, spring(0.75f, 50f))
@@ -472,14 +463,14 @@ fun AnimatedPlanetsList(
                 isDragUp = dragAmount < 0
 
                 if (progressProvider() < 0.99f) {
-                    onOuterDrag(kotlin.math.abs(dragAmount))
+                    onOuterDrag(abs(dragAmount))
                     return@detectVerticalDragGestures
                 }
 
                 val lastIndex = planetsList.size - 1
                 var lastDefaultY = 0f
                 for (i in 0 until lastIndex) {
-                    lastDefaultY += cardHeightsPx[i] + spacingPx
+                    lastDefaultY += cachedHeightsPx[i] + spacingPx
                 }
                 val maxScroll = maxOf(0f, lastDefaultY - (lastIndex * stackOffsetPx))
 
@@ -488,10 +479,10 @@ fun AnimatedPlanetsList(
 
                 if (newScrollRaw < 0f) {
                     coroutineScope.launch { scrollOffsetPx.snapTo(0f) }
-                    onOuterDrag(kotlin.math.abs(dragAmount))
+                    onOuterDrag(abs(dragAmount))
                 } else if (newScrollRaw > maxScroll) {
                     coroutineScope.launch { scrollOffsetPx.snapTo(maxScroll) }
-                    onOuterDrag(kotlin.math.abs(dragAmount))
+                    onOuterDrag(abs(dragAmount))
                 } else {
                     coroutineScope.launch {
                         scrollOffsetPx.snapTo(newScrollRaw)
@@ -509,47 +500,19 @@ fun AnimatedPlanetsList(
                 val progress = progressProvider()
                 translationY = lerp(startY, endY, progress)
             }
-            .then(gestureModifier)
+            .then(dragListenerModifier)
             .padding(horizontal = 20.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 24.dp)
-        ) {
-            planetsList.forEachIndexed { index, planet ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onGloballyPositioned { layoutCoordinates ->
-                            val height = layoutCoordinates.size.height.toFloat()
-                            if (cardHeightsPx[index] != height) {
-                                cardHeightsPx[index] = height
-                            }
-                        }
-                        .graphicsLayer {
-                            alpha = if (cardHeightsPx[index] == 0f) 0f else 1f
-
-                            val currentScroll = scrollOffsetPx.value
-
-                            var defaultY = 0f
-                            for (i in 0 until index) {
-                                defaultY += cardHeightsPx[i] + spacingPx
-                            }
-
-                            val stackedY = index * stackOffsetPx
-                            val movingY = defaultY - currentScroll
-
-                            translationY = maxOf(stackedY, movingY)
-                        }
-                ) {
+        Layout(
+            content = {
+                planetsList.forEachIndexed { index, planet ->
                     PlanetCard(
                         planet = planet,
                         scrollOffsetProvider = {
                             val currentScroll = scrollOffsetPx.value
                             var defaultY = 0f
                             for (i in 0 until index) {
-                                defaultY += cardHeightsPx[i] + spacingPx
+                                defaultY += cachedHeightsPx[i] + spacingPx
                             }
                             val stackedY = index * stackOffsetPx
                             val distanceToStack = defaultY - stackedY
@@ -560,14 +523,13 @@ fun AnimatedPlanetsList(
                             val currentScroll = scrollOffsetPx.value
                             var defaultY = 0f
                             for (i in 0 until index) {
-                                defaultY += cardHeightsPx[i] + spacingPx
+                                defaultY += cachedHeightsPx[i] + spacingPx
                             }
                             val stackedY = index * stackOffsetPx
-
                             val stackPoint = defaultY - stackedY
 
                             val cardHeight =
-                                if (cardHeightsPx[index] > 0) cardHeightsPx[index] else 800f
+                                if (cachedHeightsPx[index] > 0) cachedHeightsPx[index] else 800f
                             val nextStackPoint = stackPoint + cardHeight + spacingPx - stackOffsetPx
 
                             when {
@@ -577,6 +539,30 @@ fun AnimatedPlanetsList(
                             }
                         }
                     )
+                }
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp)
+        ) { measurables, constraints ->
+            val cards = measurables.map { it.measure(constraints.copy(minHeight = 0)) }
+
+            cards.forEachIndexed { index, placeable ->
+                cachedHeightsPx[index] = placeable.height.toFloat()
+            }
+
+            layout(constraints.maxWidth, constraints.maxHeight) {
+                val currentScroll = scrollOffsetPx.value
+                var accumulationY = 0f
+
+                cards.forEachIndexed { index, placeable ->
+                    val defaultY = accumulationY
+                    val stackedY = index * stackOffsetPx
+                    val movingY = defaultY - currentScroll
+                    val finalY = maxOf(stackedY, movingY)
+
+                    placeable.placeRelative(x = 0, y = finalY.toInt())
+                    accumulationY += placeable.height + spacingPx
                 }
             }
         }
@@ -604,19 +590,16 @@ fun PlanetCard(
                 .drawBehind {
                     val progress = scrollOffsetProvider()
                     val bgAlpha = 0.8f + (progress * 0.2f)
-
                     val cornerRadiusPx = 24.dp.toPx()
-                    val cornerRadius =
-                        androidx.compose.ui.geometry.CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                    val cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
 
                     drawRoundRect(
                         color = planetBg.copy(alpha = bgAlpha),
                         cornerRadius = cornerRadius
                     )
-
                     drawRoundRect(
                         color = planetBorder,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 0.5.dp.toPx()),
+                        style = Stroke(width = 0.5.dp.toPx()),
                         cornerRadius = cornerRadius
                     )
                 }
@@ -624,7 +607,7 @@ fun PlanetCard(
                 .padding(bottom = 20.dp)
                 .graphicsLayer {
                     val dimmingProgress = dimmingProgressProvider()
-                    alpha = 1f - (dimmingProgress * 0.55f).coerceIn(0f, 1f)
+                    alpha = (1f - (dimmingProgress * 0.55f)).coerceIn(0f, 1f)
                 }
         ) {
             Row(
@@ -633,7 +616,7 @@ fun PlanetCard(
                     .padding(bottom = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.width(112.dp)) // placeholder for the image
+                Spacer(modifier = Modifier.width(112.dp)) // this Spacer is just a placeholder for the image
                 Column(modifier = Modifier.padding(start = 9.dp)) {
                     Text(
                         text = planet.name,
@@ -671,11 +654,7 @@ fun PlanetCard(
                         .background(Color.White.copy(alpha = 0.16f))
                 )
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(
-                        title = "One Day",
-                        value = planet.day,
-                        iconRes = R.drawable.ic_sun
-                    )
+                    StatItem(title = "One Day", value = planet.day, iconRes = R.drawable.ic_sun)
                 }
             }
 
@@ -714,7 +693,6 @@ fun PlanetCard(
                     )
                 }
             }
-
         }
 
         Image(
@@ -733,7 +711,7 @@ fun PlanetCard(
                 )
                 .graphicsLayer {
                     val dimmingProgress = dimmingProgressProvider()
-                    alpha = 1f - (dimmingProgress * 0.85f).coerceIn(0f, 1f)
+                    alpha = (1f - (dimmingProgress * 0.85f)).coerceIn(0f, 1f)
                 }
         )
     }
@@ -799,8 +777,8 @@ fun StatItem(
 }
 //endregion
 
-
 //region Data Models
+@Immutable
 data class PlanetData(
     val name: String,
     val subtitle: String,
