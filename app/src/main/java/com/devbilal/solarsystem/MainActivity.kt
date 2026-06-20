@@ -144,19 +144,17 @@ fun SolarSystemScreen() {
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx
             )
-            /*
-                                    AnimatedFooter(
-                                        progressProvider = { scrollProgress.value },
-                                        screenHeightPx = screenHeightPx
-                                    )
 
-                                    AnimatedPlanetsList(
-                                        progressProvider = { scrollProgress.value },
-                                        screenHeightPx = screenHeightPx,
-                                        onOuterDrag = handleOuterDrag,
-                                        onOuterSettle = handleOuterSettle
-                                    )
-                                    */
+            AnimatedFooter(
+                progressProvider = { scrollProgress.value },
+                screenHeightPx = screenHeightPx
+            )
+            AnimatedPlanetsList(
+                progressProvider = { scrollProgress.value },
+                screenHeightPx = screenHeightPx,
+                onOuterDrag = handleOuterDrag,
+                onOuterSettle = handleOuterSettle
+            )
         }
     }
 }
@@ -287,6 +285,7 @@ fun BoxScope.AnimatedEarth(
     val screenWidth = LocalWindowInfo.current.containerDpSize.width
     val earthBaseSize = screenWidth * 0.5556f
     val endPaddingPx = remember(density) { with(density) { 36.dp.toPx() } }
+    val offset = remember(density) { with(density) { (-12).dp.toPx() } }
 
     Image(
         painter = painterResource(id = R.drawable.earth),
@@ -297,7 +296,7 @@ fun BoxScope.AnimatedEarth(
             .statusBarsPadding()
             .graphicsLayer {
                 val progress = progressProvider()
-                val startScale = 3.5f
+                val startScale = 3.8f
                 val endScale = 1.0f
 
                 val currentScale = lerp(startScale, endScale, progress)
@@ -313,8 +312,8 @@ fun BoxScope.AnimatedEarth(
                 shadow = Shadow(
                     radius = 50.dp,
                     color = earthShadowColor,
-                    alpha = .15f,
-                    offset = DpOffset(0.dp, (-12).dp)
+                    alpha = .2f,
+                    offset = DpOffset(0.dp, offset.dp)
                 )
             )
             .graphicsLayer {
@@ -338,7 +337,7 @@ fun BoxScope.AnimatedFooter(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .align(Alignment.BottomCenter)
-            .padding(bottom = 14.dp)
+            .padding(bottom = 24.dp)
             .graphicsLayer(clip = false)
             .graphicsLayer {
                 val progress = progressProvider()
@@ -350,35 +349,31 @@ fun BoxScope.AnimatedFooter(
     ) {
         val arrowPainter = painterResource(id = R.drawable.ic_arrow_up)
         Column(
-            modifier = Modifier.padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy((-4).dp)
+            verticalArrangement = Arrangement.spacedBy((-16).dp)
         ) {
-
             Icon(
                 painter = arrowPainter,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(40.dp)
             )
             Icon(
                 painter = arrowPainter,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = .78f),
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(40.dp)
             )
             Icon(
                 painter = arrowPainter,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = .5f),
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(40.dp)
             )
-
         }
 
         Text(
             text = "Swipe Up To Explore",
-            modifier = Modifier.padding(10.dp),
             color = Color.White,
             fontFamily = FontFamily(Font(R.font.rubik_medium)),
             fontWeight = FontWeight(500),
