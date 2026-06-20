@@ -38,11 +38,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.dropShadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.input.pointer.pointerInput
@@ -66,7 +64,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import androidx.compose.ui.graphics.lerp as lerpColor
 
 class MainActivity : ComponentActivity() {
@@ -117,7 +114,7 @@ fun SolarSystemScreen() {
             }
         }
 
-        val dragListenerModifier = Modifier.pointerInput(Unit) {
+        val gestureModifier = Modifier.pointerInput(Unit) {
             detectVerticalDragGestures(
                 onDragEnd = { handleOuterSettle(isDragUp) },
                 onDragCancel = { handleOuterSettle(isDragUp) },
@@ -131,7 +128,7 @@ fun SolarSystemScreen() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(dragListenerModifier)
+                .then(gestureModifier)
         ) {
             AnimatedBackground(progressProvider = { scrollProgress.value })
 
@@ -161,6 +158,7 @@ fun SolarSystemScreen() {
 }
 //endregion
 
+
 // region AnimatedBackground
 @Composable
 fun AnimatedBackground(progressProvider: () -> Float) {
@@ -169,10 +167,22 @@ fun AnimatedBackground(progressProvider: () -> Float) {
             .fillMaxSize()
             .drawBehind {
                 val progress = progressProvider()
-                val color1 = lerpColor(Color.Black, bgEnd1, progress)
-                val color2 = lerpColor(bgStart1, bgEnd2, progress)
-                val color3 = lerpColor(bgStart2, bgEnd2, progress)
-                val color4 = lerpColor(bgStart3, bgEnd3, progress)
+                val color1 = lerpColor(Color.Black, SolarSystemTheme.Colors.bgEnd1, progress)
+                val color2 = lerpColor(
+                    SolarSystemTheme.Colors.bgStart1,
+                    SolarSystemTheme.Colors.bgEnd2,
+                    progress
+                )
+                val color3 = lerpColor(
+                    SolarSystemTheme.Colors.bgStart2,
+                    SolarSystemTheme.Colors.bgEnd2,
+                    progress
+                )
+                val color4 = lerpColor(
+                    SolarSystemTheme.Colors.bgStart3,
+                    SolarSystemTheme.Colors.bgEnd3,
+                    progress
+                )
                 drawRect(
                     brush = Brush.verticalGradient(
                         startY = 65f,
@@ -203,11 +213,10 @@ fun BoxScope.AnimatedHeader(
     val startPaddingPx = remember(density) { with(density) { 56.dp.toPx() } }
     val endPaddingPx = remember(density) { with(density) { 98.dp.toPx() } }
     val shadowOffsetPx = remember(density) { with(density) { 4.dp.toPx() } }
-    val shadow = androidx.compose.ui.graphics.Shadow(
-        color = Color.White.copy(alpha = .16f),
-        blurRadius = 12f,
-        offset = Offset(-shadowOffsetPx, shadowOffsetPx)
-    )
+
+    val shadow = remember(shadowOffsetPx) {
+        SolarSystemTheme.Shadows.textHeadingShadow(shadowOffsetPx)
+    }
 
     Box(
         modifier = Modifier
@@ -222,24 +231,24 @@ fun BoxScope.AnimatedHeader(
                 val progress = progressProvider()
                 val startTranslateY = -screenHeightPx * 0.4f
                 translationY = lerp(startTranslateY, endPaddingPx, progress)
-                alpha = progress
+                alpha = progress.coerceIn(0f, 1f)
             },
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = "Our Solar System",
-                color = Color.White.copy(alpha = .88f),
-                fontFamily = RubikBold,
-                fontWeight = FontWeight(700),
-                fontSize = 24.sp,
-                style = TextStyle(shadow = shadow)
+                color = SolarSystemTheme.Colors.textPrimary,
+                fontSize = SolarSystemTheme.Typography.headerMedium.fontSize,
+                fontFamily = SolarSystemTheme.Typography.headerMedium.fontFamily,
+                fontWeight = SolarSystemTheme.Typography.headerMedium.fontWeight,
+                style = SolarSystemTheme.Typography.headerMedium.copy(shadow = shadow)
             )
             Text(
                 text = "Earth is only one small part of a much larger\nstory.",
-                color = Color.White.copy(alpha = .80f),
-                fontFamily = LilyRegular,
-                fontWeight = FontWeight(400),
-                fontSize = 16.sp,
+                color = SolarSystemTheme.Colors.textSecondary,
+                fontSize = SolarSystemTheme.Typography.bodyPrimary.fontSize,
+                fontFamily = SolarSystemTheme.Typography.bodyPrimary.fontFamily,
+                fontWeight = SolarSystemTheme.Typography.bodyPrimary.fontWeight,
                 textAlign = TextAlign.Center
             )
         }
@@ -256,18 +265,18 @@ fun BoxScope.AnimatedHeader(
         ) {
             Text(
                 text = "Earth",
-                color = Color.White.copy(alpha = .88f),
-                fontFamily = RubikBold,
-                fontWeight = FontWeight(700),
-                fontSize = 64.sp,
-                style = TextStyle(shadow = shadow)
+                color = SolarSystemTheme.Colors.textPrimary,
+                fontSize = SolarSystemTheme.Typography.headerLarge.fontSize,
+                fontFamily = SolarSystemTheme.Typography.headerLarge.fontFamily,
+                fontWeight = SolarSystemTheme.Typography.headerLarge.fontWeight,
+                style = SolarSystemTheme.Typography.headerLarge.copy(shadow = shadow)
             )
             Text(
                 text = "A tiny blue world drifting\nthrough the endless dark.",
-                color = Color.White.copy(alpha = .8f),
-                fontFamily = LilyRegular,
-                fontWeight = FontWeight(400),
-                fontSize = 16.sp,
+                color = SolarSystemTheme.Colors.textSecondary,
+                fontSize = SolarSystemTheme.Typography.bodyPrimary.fontSize,
+                fontFamily = SolarSystemTheme.Typography.bodyPrimary.fontFamily,
+                fontWeight = SolarSystemTheme.Typography.bodyPrimary.fontWeight,
                 textAlign = TextAlign.Center
             )
         }
@@ -302,10 +311,10 @@ fun BoxScope.AnimatedEarth(
                 translationY = lerp(screenHeightPx * 0.65f, endPaddingPx, progress)
             }
             .dropShadow(
-                shape = CircleShape,
+                shape = SolarSystemTheme.Shapes.earthGlowShape,
                 shadow = Shadow(
                     radius = 50.dp,
-                    color = earthShadowColor,
+                    color = SolarSystemTheme.Colors.earthShadowColor,
                     alpha = .2f,
                     offset = DpOffset(0.dp, offset.dp)
                 )
@@ -314,7 +323,10 @@ fun BoxScope.AnimatedEarth(
             // if we combined both before the shadow it would be cropped
             .graphicsLayer {
                 val progress = progressProvider()
-                alpha = (1.5f - progress).coerceIn(0f, 1f)
+                alpha = (1.5f - progress).coerceIn(
+                    0f,
+                    1f
+                )
             }
     )
 }
@@ -348,37 +360,31 @@ fun BoxScope.AnimatedFooter(
             Icon(
                 painter = arrowPainter,
                 contentDescription = null,
-                tint = Color.White,
+                tint = SolarSystemTheme.Colors.textStaticWhite,
                 modifier = Modifier.size(40.dp)
             )
             Icon(
                 painter = arrowPainter,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = .78f),
+                tint = SolarSystemTheme.Colors.textStaticWhite.copy(alpha = .78f),
                 modifier = Modifier.size(40.dp)
             )
             Icon(
                 painter = arrowPainter,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = .5f),
+                tint = SolarSystemTheme.Colors.textStaticWhite.copy(alpha = .5f),
                 modifier = Modifier.size(40.dp)
             )
         }
 
         Text(
             text = "Swipe Up To Explore",
-            color = Color.White,
-            fontFamily = RubikMedium,
-            fontWeight = FontWeight(500),
-            fontSize = 16.sp,
-            letterSpacing = 0.25.sp,
-            style = TextStyle(
-                shadow = androidx.compose.ui.graphics.Shadow(
-                    color = Color.White.copy(alpha = .44f),
-                    blurRadius = 16f,
-                    offset = Offset(0f, shadowOffsetPx)
-                )
-            )
+            color = SolarSystemTheme.Colors.textStaticWhite,
+            fontSize = SolarSystemTheme.Typography.bodyMedium.fontSize,
+            fontFamily = SolarSystemTheme.Typography.bodyMedium.fontFamily,
+            fontWeight = SolarSystemTheme.Typography.bodyMedium.fontWeight,
+            letterSpacing = SolarSystemTheme.Typography.bodyMedium.letterSpacing,
+            style = TextStyle(shadow = SolarSystemTheme.Shadows.textFooterShadow(shadowOffsetPx))
         )
     }
 }
@@ -412,7 +418,7 @@ fun AnimatedPlanetsList(
     val scrollOffsetPx = remember { Animatable(0f) }
     var isDragUp = remember { false }
 
-    val dragListenerModifier = Modifier.pointerInput(Unit) {
+    val gestureModifier = Modifier.pointerInput(Unit) {
         detectVerticalDragGestures(
             onDragEnd = {
                 if (progressProvider() < 0.99f) {
@@ -452,7 +458,7 @@ fun AnimatedPlanetsList(
                 }
 
                 val currentScroll = scrollOffsetPx.value
-                val target = snapPoints.minByOrNull { abs(it - currentScroll) } ?: 0f
+                val target = snapPoints.minByOrNull { kotlin.math.abs(it - currentScroll) } ?: 0f
 
                 coroutineScope.launch {
                     scrollOffsetPx.animateTo(target, spring(0.75f, 50f))
@@ -463,7 +469,7 @@ fun AnimatedPlanetsList(
                 isDragUp = dragAmount < 0
 
                 if (progressProvider() < 0.99f) {
-                    onOuterDrag(abs(dragAmount))
+                    onOuterDrag(kotlin.math.abs(dragAmount))
                     return@detectVerticalDragGestures
                 }
 
@@ -479,10 +485,10 @@ fun AnimatedPlanetsList(
 
                 if (newScrollRaw < 0f) {
                     coroutineScope.launch { scrollOffsetPx.snapTo(0f) }
-                    onOuterDrag(abs(dragAmount))
+                    onOuterDrag(kotlin.math.abs(dragAmount))
                 } else if (newScrollRaw > maxScroll) {
                     coroutineScope.launch { scrollOffsetPx.snapTo(maxScroll) }
-                    onOuterDrag(abs(dragAmount))
+                    onOuterDrag(kotlin.math.abs(dragAmount))
                 } else {
                     coroutineScope.launch {
                         scrollOffsetPx.snapTo(newScrollRaw)
@@ -500,7 +506,7 @@ fun AnimatedPlanetsList(
                 val progress = progressProvider()
                 translationY = lerp(startY, endY, progress)
             }
-            .then(dragListenerModifier)
+            .then(gestureModifier)
             .padding(horizontal = 20.dp)
     ) {
         Layout(
@@ -545,9 +551,9 @@ fun AnimatedPlanetsList(
                 .fillMaxSize()
                 .padding(bottom = 24.dp)
         ) { measurables, constraints ->
-            val cards = measurables.map { it.measure(constraints.copy(minHeight = 0)) }
+            val placeables = measurables.map { it.measure(constraints.copy(minHeight = 0)) }
 
-            cards.forEachIndexed { index, placeable ->
+            placeables.forEachIndexed { index, placeable ->
                 cachedHeightsPx[index] = placeable.height.toFloat()
             }
 
@@ -555,7 +561,7 @@ fun AnimatedPlanetsList(
                 val currentScroll = scrollOffsetPx.value
                 var accumulationY = 0f
 
-                cards.forEachIndexed { index, placeable ->
+                placeables.forEachIndexed { index, placeable ->
                     val defaultY = accumulationY
                     val stackedY = index * stackOffsetPx
                     val movingY = defaultY - currentScroll
@@ -586,20 +592,21 @@ fun PlanetCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(SolarSystemTheme.Shapes.cardShape)
                 .drawBehind {
                     val progress = scrollOffsetProvider()
                     val bgAlpha = 0.8f + (progress * 0.2f)
                     val cornerRadiusPx = 24.dp.toPx()
-                    val cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                    val cornerRadius =
+                        androidx.compose.ui.geometry.CornerRadius(cornerRadiusPx, cornerRadiusPx)
 
                     drawRoundRect(
-                        color = planetBg.copy(alpha = bgAlpha),
+                        color = SolarSystemTheme.Colors.planetBg.copy(alpha = bgAlpha),
                         cornerRadius = cornerRadius
                     )
                     drawRoundRect(
-                        color = planetBorder,
-                        style = Stroke(width = 0.5.dp.toPx()),
+                        color = SolarSystemTheme.Colors.planetBorder,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 0.5.dp.toPx()),
                         cornerRadius = cornerRadius
                     )
                 }
@@ -620,17 +627,13 @@ fun PlanetCard(
                 Column(modifier = Modifier.padding(start = 9.dp)) {
                     Text(
                         text = planet.name,
-                        color = Color.White,
-                        fontFamily = RubikBold,
-                        fontSize = 18.sp,
-                        letterSpacing = 0.25.sp
+                        color = SolarSystemTheme.Colors.textStaticWhite,
+                        style = SolarSystemTheme.Typography.cardTitle
                     )
                     Text(
                         text = planet.subtitle,
-                        color = Color.LightGray,
-                        fontFamily = RubikRegular,
-                        fontSize = 14.sp,
-                        letterSpacing = 0.25.sp
+                        color = SolarSystemTheme.Colors.textStaticLightGray,
+                        style = SolarSystemTheme.Typography.bodyRegular
                     )
                 }
             }
@@ -643,7 +646,7 @@ fun PlanetCard(
                     StatItem(
                         title = "You Would Weigh",
                         value = planet.weight,
-                        iconRes = R.drawable.ic_weight
+                        iconRes = planet.weightIconRes
                     )
                 }
                 Box(
@@ -651,10 +654,10 @@ fun PlanetCard(
                         .padding(horizontal = 16.dp)
                         .width(0.5.dp)
                         .height(32.dp)
-                        .background(Color.White.copy(alpha = 0.16f))
+                        .background(SolarSystemTheme.Colors.textStaticWhite.copy(alpha = 0.16f))
                 )
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(title = "One Day", value = planet.day, iconRes = R.drawable.ic_sun)
+                    StatItem(title = "One Day", value = planet.day, iconRes = planet.dayIconRes)
                 }
             }
 
@@ -663,7 +666,7 @@ fun PlanetCard(
                     .padding(vertical = 16.dp)
                     .fillMaxWidth()
                     .height(0.5.dp)
-                    .background(Color.White.copy(alpha = 0.16f))
+                    .background(SolarSystemTheme.Colors.textStaticWhite.copy(alpha = 0.16f))
             )
 
             Row(
@@ -674,7 +677,7 @@ fun PlanetCard(
                     StatItem(
                         title = "Temperature",
                         value = planet.temp,
-                        iconRes = R.drawable.ic_temperature,
+                        iconRes = planet.tempIconRes,
                         subValue = planet.tempInfo
                     )
                 }
@@ -683,13 +686,13 @@ fun PlanetCard(
                         .padding(horizontal = 16.dp)
                         .width(0.5.dp)
                         .height(32.dp)
-                        .background(Color.White.copy(alpha = 0.16f))
+                        .background(SolarSystemTheme.Colors.textStaticWhite.copy(alpha = 0.16f))
                 )
                 Box(modifier = Modifier.weight(1f)) {
                     StatItem(
                         title = "Additional info",
                         value = planet.info,
-                        iconRes = R.drawable.ic_info
+                        iconRes = planet.infoIconRes
                     )
                 }
             }
@@ -702,7 +705,7 @@ fun PlanetCard(
                 .padding(start = 16.dp)
                 .size(112.dp)
                 .dropShadow(
-                    shape = CircleShape,
+                    shape = SolarSystemTheme.Shapes.earthGlowShape,
                     shadow = Shadow(
                         radius = 50.dp,
                         color = planet.glowColor,
@@ -734,30 +737,21 @@ fun StatItem(
         Icon(
             painter = painterResource(iconRes),
             contentDescription = null,
-            tint = Color.Gray,
+            tint = SolarSystemTheme.Colors.iconTintMuted,
             modifier = Modifier.size(20.dp)
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = title,
-                color = Color.White.copy(alpha = 0.66f),
-                fontSize = 12.sp,
-                fontFamily = RubikRegular,
-                letterSpacing = 0.25.sp,
-                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                color = SolarSystemTheme.Colors.textMuted,
+                style = SolarSystemTheme.Typography.labelSmall
             )
 
             val combinedValue = remember(value, subValue) {
                 buildAnnotatedString {
                     append(value)
                     if (!subValue.isNullOrEmpty()) {
-                        withStyle(
-                            style = SpanStyle(
-                                color = Color.White.copy(alpha = 0.66f),
-                                fontSize = 10.sp,
-                                fontFamily = RubikRegular
-                            )
-                        ) {
+                        withStyle(style = SolarSystemTheme.Typography.annotationSpan.copy(color = SolarSystemTheme.Colors.textMuted)) {
                             append(", $subValue")
                         }
                     }
@@ -766,16 +760,100 @@ fun StatItem(
 
             Text(
                 text = combinedValue,
-                color = Color.White.copy(alpha = 0.88f),
-                fontSize = 12.sp,
-                fontFamily = RubikMedium,
-                letterSpacing = 0.25.sp,
-                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                color = SolarSystemTheme.Colors.textPrimary,
+                style = SolarSystemTheme.Typography.labelSmallMedium
             )
         }
     }
 }
 //endregion
+
+
+//region Design System / Theme Layer
+
+// Simple App Doesn't need things tpo be complex
+// So This would be a Humble Design System
+object SolarSystemTheme {
+    object Colors {
+        val bgStart1 = Color(0xFF060816)
+        val bgStart2 = Color(0xFF0F172A)
+        val bgStart3 = Color(0xFF020D3C)
+        val bgEnd1 = Color(0xFF1E1B4B)
+        val bgEnd2 = Color(0xFF0F172A)
+        val bgEnd3 = Color(0xFF030712)
+
+        val planetBg = Color(0xFF0B1223)
+        val planetBorder = Color(0xFF2F2E2E)
+        val earthShadowColor = Color(0xFF4197E7)
+
+        val textPrimary = Color.White.copy(alpha = 0.88f)
+        val textSecondary = Color.White.copy(alpha = 0.80f)
+        val textMuted = Color.White.copy(alpha = 0.66f)
+        val textStaticWhite = Color.White
+        val textStaticLightGray = Color.LightGray
+        val iconTintMuted = Color.Gray
+    }
+
+    object Typography {
+        private val rubikBold = FontFamily(Font(R.font.rubik_bold))
+        private val rubikRegular = FontFamily(Font(R.font.rubik_regular))
+        private val rubikMedium = FontFamily(Font(R.font.rubik_medium))
+        private val lilyRegular = FontFamily(Font(R.font.lily_regular))
+
+        val headerLarge =
+            TextStyle(fontFamily = rubikBold, fontWeight = FontWeight(700), fontSize = 64.sp)
+        val headerMedium =
+            TextStyle(fontFamily = rubikBold, fontWeight = FontWeight(700), fontSize = 24.sp)
+        val cardTitle = TextStyle(fontFamily = rubikBold, fontSize = 18.sp, letterSpacing = 0.25.sp)
+
+        val bodyPrimary =
+            TextStyle(fontFamily = lilyRegular, fontWeight = FontWeight(400), fontSize = 16.sp)
+        val bodyMedium = TextStyle(
+            fontFamily = rubikMedium,
+            fontWeight = FontWeight(500),
+            fontSize = 16.sp,
+            letterSpacing = 0.25.sp
+        )
+        val bodyRegular =
+            TextStyle(fontFamily = rubikRegular, fontSize = 14.sp, letterSpacing = 0.25.sp)
+
+        val labelSmall = TextStyle(
+            fontFamily = rubikRegular,
+            fontSize = 12.sp,
+            letterSpacing = 0.25.sp,
+            platformStyle = PlatformTextStyle(includeFontPadding = false)
+        )
+        val labelSmallMedium = TextStyle(
+            fontFamily = rubikMedium,
+            fontSize = 12.sp,
+            letterSpacing = 0.25.sp,
+            platformStyle = PlatformTextStyle(includeFontPadding = false)
+        )
+
+        val annotationSpan = SpanStyle(fontFamily = rubikRegular, fontSize = 10.sp)
+    }
+
+    object Shapes {
+        val cardShape = RoundedCornerShape(20.dp)
+        val earthGlowShape = CircleShape
+    }
+
+    object Shadows {
+        fun textHeadingShadow(offsetPx: Float) = androidx.compose.ui.graphics.Shadow(
+            color = Color.White.copy(alpha = 0.16f),
+            blurRadius = 12f,
+            offset = Offset(-offsetPx, offsetPx)
+        )
+
+        fun textFooterShadow(offsetPx: Float) = androidx.compose.ui.graphics.Shadow(
+            color = Color.White.copy(alpha = 0.44f),
+            blurRadius = 16f,
+            offset = Offset(0f, offsetPx)
+        )
+    }
+}
+//endregion
+
 
 //region Data Models
 @Immutable
@@ -788,7 +866,11 @@ data class PlanetData(
     val tempInfo: String?,
     val info: String,
     val imageId: Int,
-    val glowColor: Color
+    val glowColor: Color,
+    @param:DrawableRes val weightIconRes: Int = R.drawable.ic_weight,
+    @param:DrawableRes val dayIconRes: Int = R.drawable.ic_sun,
+    @param:DrawableRes val tempIconRes: Int = R.drawable.ic_temperature,
+    @param:DrawableRes val infoIconRes: Int = R.drawable.ic_info
 )
 //endregion
 
@@ -872,23 +954,4 @@ val planetsList = listOf(
         Color(0xFF2CA6DB)
     )
 )
-//endregion
-
-//region Color Constants
-val bgStart3 = Color(0xFF020D3C)
-val bgStart2 = Color(0xFF0F172A)
-val bgStart1 = Color(0xFF060816)
-val bgEnd3 = Color(0xFF030712)
-val bgEnd2 = Color(0xFF0F172A)
-val bgEnd1 = Color(0xFF1E1B4B)
-val planetBg = Color(0xFF0B1223)
-val planetBorder = Color(0xFF2F2E2E)
-val earthShadowColor = Color(0xFF4197E7)
-//endregion
-
-// region Typography
-private val RubikBold = FontFamily(Font(R.font.rubik_bold))
-private val RubikRegular = FontFamily(Font(R.font.rubik_regular))
-private val RubikMedium = FontFamily(Font(R.font.rubik_medium))
-private val LilyRegular = FontFamily(Font(R.font.lily_regular))
 //endregion
