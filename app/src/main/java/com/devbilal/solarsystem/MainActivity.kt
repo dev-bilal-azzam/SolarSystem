@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -79,6 +80,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 
 //region SolarSystemScreen
 @Composable
@@ -159,6 +161,7 @@ fun SolarSystemScreen() {
 //endregion
 
 
+
 // region AnimatedBackground
 @Composable
 fun AnimatedBackground(progressProvider: () -> Float) {
@@ -168,21 +171,9 @@ fun AnimatedBackground(progressProvider: () -> Float) {
             .drawBehind {
                 val progress = progressProvider()
                 val color1 = lerpColor(Color.Black, SolarSystemTheme.Colors.bgEnd1, progress)
-                val color2 = lerpColor(
-                    SolarSystemTheme.Colors.bgStart1,
-                    SolarSystemTheme.Colors.bgEnd2,
-                    progress
-                )
-                val color3 = lerpColor(
-                    SolarSystemTheme.Colors.bgStart2,
-                    SolarSystemTheme.Colors.bgEnd2,
-                    progress
-                )
-                val color4 = lerpColor(
-                    SolarSystemTheme.Colors.bgStart3,
-                    SolarSystemTheme.Colors.bgEnd3,
-                    progress
-                )
+                val color2 = lerpColor(SolarSystemTheme.Colors.bgStart1, SolarSystemTheme.Colors.bgEnd2, progress)
+                val color3 = lerpColor(SolarSystemTheme.Colors.bgStart2, SolarSystemTheme.Colors.bgEnd2, progress)
+                val color4 = lerpColor(SolarSystemTheme.Colors.bgStart3, SolarSystemTheme.Colors.bgEnd3, progress)
                 drawRect(
                     brush = Brush.verticalGradient(
                         startY = 65f,
@@ -199,87 +190,6 @@ fun AnimatedBackground(progressProvider: () -> Float) {
                 .fillMaxSize()
                 .alpha(.34f)
         )
-    }
-}
-//endregion
-
-// region AnimatedHeader
-@Composable
-fun BoxScope.AnimatedHeader(
-    progressProvider: () -> Float,
-    screenHeightPx: Float
-) {
-    val density = LocalDensity.current
-    val startPaddingPx = remember(density) { with(density) { 56.dp.toPx() } }
-    val endPaddingPx = remember(density) { with(density) { 98.dp.toPx() } }
-    val shadowOffsetPx = remember(density) { with(density) { 4.dp.toPx() } }
-
-    val shadow = remember(shadowOffsetPx) {
-        SolarSystemTheme.Shadows.textHeadingShadow(shadowOffsetPx)
-    }
-
-    Box(
-        modifier = Modifier
-            .align(Alignment.TopCenter)
-            .statusBarsPadding()
-            .fillMaxWidth(),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.graphicsLayer {
-                val progress = progressProvider()
-                val startTranslateY = -screenHeightPx * 0.4f
-                translationY = lerp(startTranslateY, endPaddingPx, progress)
-                alpha = progress.coerceIn(0f, 1f)
-            },
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "Our Solar System",
-                color = SolarSystemTheme.Colors.textPrimary,
-                fontSize = SolarSystemTheme.Typography.headerMedium.fontSize,
-                fontFamily = SolarSystemTheme.Typography.headerMedium.fontFamily,
-                fontWeight = SolarSystemTheme.Typography.headerMedium.fontWeight,
-                style = SolarSystemTheme.Typography.headerMedium.copy(shadow = shadow)
-            )
-            Text(
-                text = "Earth is only one small part of a much larger\nstory.",
-                color = SolarSystemTheme.Colors.textSecondary,
-                fontSize = SolarSystemTheme.Typography.bodyPrimary.fontSize,
-                fontFamily = SolarSystemTheme.Typography.bodyPrimary.fontFamily,
-                fontWeight = SolarSystemTheme.Typography.bodyPrimary.fontWeight,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.graphicsLayer {
-                val progress = progressProvider()
-                val endTranslateY = -screenHeightPx * 0.4f
-                translationY = lerp(startPaddingPx, endTranslateY, progress)
-                alpha = (1f - progress).coerceIn(0f, 1f)
-            },
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "Earth",
-                color = SolarSystemTheme.Colors.textPrimary,
-                fontSize = SolarSystemTheme.Typography.headerLarge.fontSize,
-                fontFamily = SolarSystemTheme.Typography.headerLarge.fontFamily,
-                fontWeight = SolarSystemTheme.Typography.headerLarge.fontWeight,
-                style = SolarSystemTheme.Typography.headerLarge.copy(shadow = shadow)
-            )
-            Text(
-                text = "A tiny blue world drifting\nthrough the endless dark.",
-                color = SolarSystemTheme.Colors.textSecondary,
-                fontSize = SolarSystemTheme.Typography.bodyPrimary.fontSize,
-                fontFamily = SolarSystemTheme.Typography.bodyPrimary.fontFamily,
-                fontWeight = SolarSystemTheme.Typography.bodyPrimary.fontWeight,
-                textAlign = TextAlign.Center
-            )
-        }
     }
 }
 //endregion
@@ -323,12 +233,80 @@ fun BoxScope.AnimatedEarth(
             // if we combined both before the shadow it would be cropped
             .graphicsLayer {
                 val progress = progressProvider()
-                alpha = (1.5f - progress).coerceIn(
-                    0f,
-                    1f
-                )
+                alpha = (1.5f - progress).coerceIn(0f, 1f)
             }
     )
+}
+//endregion
+
+// region AnimatedHeader
+@Composable
+fun BoxScope.AnimatedHeader(
+    progressProvider: () -> Float,
+    screenHeightPx: Float
+) {
+    val density = LocalDensity.current
+    val startPaddingPx = remember(density) { with(density) { 56.dp.toPx() } }
+    val endPaddingPx = remember(density) { with(density) { 98.dp.toPx() } }
+    val shadowOffsetPx = remember(density) { with(density) { 4.dp.toPx() } }
+
+    val shadow = remember(shadowOffsetPx) {
+        SolarSystemTheme.Shadows.textHeadingShadow(shadowOffsetPx)
+    }
+
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .statusBarsPadding()
+            .fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                val progress = progressProvider()
+                val startTranslateY = -screenHeightPx * 0.4f
+                translationY = lerp(startTranslateY, endPaddingPx, progress)
+                alpha = progress.coerceIn(0f, 1f)
+            },
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "Our Solar System",
+                color = SolarSystemTheme.Colors.textPrimary,
+                style = SolarSystemTheme.Typography.headerMedium.copy(shadow = shadow)
+            )
+            Text(
+                text = "Earth is only one small part of a much larger\nstory.",
+                color = SolarSystemTheme.Colors.textSecondary,
+                style = SolarSystemTheme.Typography.bodyPrimary,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                val progress = progressProvider()
+                val endTranslateY = -screenHeightPx * 0.4f
+                translationY = lerp(startPaddingPx, endTranslateY, progress)
+                alpha = (1f - progress).coerceIn(0f, 1f)
+            },
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "Earth",
+                color = SolarSystemTheme.Colors.textPrimary,
+                style = SolarSystemTheme.Typography.headerLarge.copy(shadow = shadow)
+            )
+            Text(
+                text = "A tiny blue world drifting\nthrough the endless dark.",
+                color = SolarSystemTheme.Colors.textSecondary,
+                style = SolarSystemTheme.Typography.bodyPrimary,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 //endregion
 
@@ -345,7 +323,7 @@ fun BoxScope.AnimatedFooter(
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .padding(bottom = 24.dp)
-            .graphicsLayer(clip = false)
+            .graphicsLayer(clip = false) // to prevent clipping the shadow
             .graphicsLayer {
                 val progress = progressProvider()
                 translationY = lerp(0f, screenHeightPx * 0.15f, progress)
@@ -357,38 +335,22 @@ fun BoxScope.AnimatedFooter(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy((-16).dp)
         ) {
-            Icon(
-                painter = arrowPainter,
-                contentDescription = null,
-                tint = SolarSystemTheme.Colors.textStaticWhite,
-                modifier = Modifier.size(40.dp)
-            )
-            Icon(
-                painter = arrowPainter,
-                contentDescription = null,
-                tint = SolarSystemTheme.Colors.textStaticWhite.copy(alpha = .78f),
-                modifier = Modifier.size(40.dp)
-            )
-            Icon(
-                painter = arrowPainter,
-                contentDescription = null,
-                tint = SolarSystemTheme.Colors.textStaticWhite.copy(alpha = .5f),
-                modifier = Modifier.size(40.dp)
-            )
+            Icon(painter = arrowPainter, contentDescription = null, tint = SolarSystemTheme.Colors.textStaticWhite, modifier = Modifier.size(40.dp))
+            Icon(painter = arrowPainter, contentDescription = null, tint = SolarSystemTheme.Colors.textStaticWhite.copy(alpha = .78f), modifier = Modifier.size(40.dp))
+            Icon(painter = arrowPainter, contentDescription = null, tint = SolarSystemTheme.Colors.textStaticWhite.copy(alpha = .5f), modifier = Modifier.size(40.dp))
         }
 
         Text(
             text = "Swipe Up To Explore",
             color = SolarSystemTheme.Colors.textStaticWhite,
-            fontSize = SolarSystemTheme.Typography.bodyMedium.fontSize,
-            fontFamily = SolarSystemTheme.Typography.bodyMedium.fontFamily,
-            fontWeight = SolarSystemTheme.Typography.bodyMedium.fontWeight,
-            letterSpacing = SolarSystemTheme.Typography.bodyMedium.letterSpacing,
-            style = TextStyle(shadow = SolarSystemTheme.Shadows.textFooterShadow(shadowOffsetPx))
+            style = SolarSystemTheme.Typography.bodyMedium.copy(
+                shadow = SolarSystemTheme.Shadows.textFooterShadow(shadowOffsetPx)
+            )
         )
     }
 }
 //endregion
+
 
 //region AnimatedPlanetsList
 @Composable
@@ -407,8 +369,7 @@ fun AnimatedPlanetsList(
     val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
     val listSpacingPx = with(density) { 24.dp.toPx() }
 
-    val startEarthBottomPx =
-        (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
+    val startEarthBottomPx = (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
     val startY = startEarthBottomPx + listSpacingPx
     val endEarthBottomPx = (screenHeightPx * 0.12f) + earthBaseSizePx
     val endY = endEarthBottomPx + listSpacingPx
@@ -534,8 +495,7 @@ fun AnimatedPlanetsList(
                             val stackedY = index * stackOffsetPx
                             val stackPoint = defaultY - stackedY
 
-                            val cardHeight =
-                                if (cachedHeightsPx[index] > 0) cachedHeightsPx[index] else 800f
+                            val cardHeight = if (cachedHeightsPx[index] > 0) cachedHeightsPx[index] else 800f
                             val nextStackPoint = stackPoint + cardHeight + spacingPx - stackOffsetPx
 
                             when {
@@ -597,8 +557,7 @@ fun PlanetCard(
                     val progress = scrollOffsetProvider()
                     val bgAlpha = 0.8f + (progress * 0.2f)
                     val cornerRadiusPx = 24.dp.toPx()
-                    val cornerRadius =
-                        androidx.compose.ui.geometry.CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                    val cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
 
                     drawRoundRect(
                         color = SolarSystemTheme.Colors.planetBg.copy(alpha = bgAlpha),
@@ -643,11 +602,7 @@ fun PlanetCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(
-                        title = "You Would Weigh",
-                        value = planet.weight,
-                        iconRes = planet.weightIconRes
-                    )
+                    StatItem(title = "You Would Weigh", value = planet.weight, iconRes = planet.weightIconRes)
                 }
                 Box(
                     modifier = Modifier
@@ -674,12 +629,7 @@ fun PlanetCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(
-                        title = "Temperature",
-                        value = planet.temp,
-                        iconRes = planet.tempIconRes,
-                        subValue = planet.tempInfo
-                    )
+                    StatItem(title = "Temperature", value = planet.temp, iconRes = planet.tempIconRes, subValue = planet.tempInfo)
                 }
                 Box(
                     modifier = Modifier
@@ -689,11 +639,7 @@ fun PlanetCard(
                         .background(SolarSystemTheme.Colors.textStaticWhite.copy(alpha = 0.16f))
                 )
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(
-                        title = "Additional info",
-                        value = planet.info,
-                        iconRes = planet.infoIconRes
-                    )
+                    StatItem(title = "Additional info", value = planet.info, iconRes = planet.infoIconRes)
                 }
             }
         }
@@ -769,10 +715,41 @@ fun StatItem(
 //endregion
 
 
-//region Design System / Theme Layer
 
-// Simple App Doesn't need things tpo be complex
-// So This would be a Humble Design System
+//region Data Models
+@Immutable
+data class PlanetData(
+    val name: String,
+    val subtitle: String,
+    val weight: String,
+    val day: String,
+    val temp: String,
+    val tempInfo: String?,
+    val info: String,
+    val imageId: Int,
+    val glowColor: Color,
+    @field:DrawableRes val weightIconRes: Int = R.drawable.ic_weight,
+    @field:DrawableRes val dayIconRes: Int = R.drawable.ic_sun,
+    @field:DrawableRes val tempIconRes: Int = R.drawable.ic_temperature,
+    @field:DrawableRes val infoIconRes: Int = R.drawable.ic_info
+)
+//endregion
+
+//region Static Dataset
+val planetsList = listOf(
+    PlanetData("Saturn", "The Ring Master", "70kg → 74kg", "10.7 Hours", "-178°C", "Bring 3\njacket", "Lighter than\nwater", R.drawable.saturn, Color(0xFFAB4F20)),
+    PlanetData("Mars", "The next colony", "70kg → 27kg", "24.6 Hours", "-65°C", "Bring a\njacket", "Red Dust Storms", R.drawable.mars, Color(0xFFFF844E)),
+    PlanetData("Mercury", "The Fastest Planet", "70kg → 26kg", "1,408 Hours", "167°C", null, "Birthday every\n88 days", R.drawable.mercury, Color(0xFF095B91)),
+    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", null, "Sun rises from\nWest", R.drawable.venus, Color(0xFFC69E4A)),
+    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Bring a\njacket", "Has 95 moons", R.drawable.jupiter, Color(0xFFFF8332)),
+    PlanetData("Uranus", "The Lacy Iceberg", "70kg → 62kg", "17 Hours", "-224°C", "Bring 3\njacket", "diamond Shower", R.drawable.uranus, Color(0xFF31CFDB)),
+    PlanetData("Neptune", "The Windy World", "70kg → 79kg", "16 Hours", "-214°C", "Bring 3\njacket", "Wind faster than\nSound", R.drawable.neptune, Color(0xFF2CA6DB))
+)
+//endregion
+
+
+
+//region Clean Code Design System / Theme Layer
 object SolarSystemTheme {
     object Colors {
         val bgStart1 = Color(0xFF060816)
@@ -800,22 +777,13 @@ object SolarSystemTheme {
         private val rubikMedium = FontFamily(Font(R.font.rubik_medium))
         private val lilyRegular = FontFamily(Font(R.font.lily_regular))
 
-        val headerLarge =
-            TextStyle(fontFamily = rubikBold, fontWeight = FontWeight(700), fontSize = 64.sp)
-        val headerMedium =
-            TextStyle(fontFamily = rubikBold, fontWeight = FontWeight(700), fontSize = 24.sp)
+        val headerLarge = TextStyle(fontFamily = rubikBold, fontWeight = FontWeight(700), fontSize = 64.sp)
+        val headerMedium = TextStyle(fontFamily = rubikBold, fontWeight = FontWeight(700), fontSize = 24.sp)
         val cardTitle = TextStyle(fontFamily = rubikBold, fontSize = 18.sp, letterSpacing = 0.25.sp)
 
-        val bodyPrimary =
-            TextStyle(fontFamily = lilyRegular, fontWeight = FontWeight(400), fontSize = 16.sp)
-        val bodyMedium = TextStyle(
-            fontFamily = rubikMedium,
-            fontWeight = FontWeight(500),
-            fontSize = 16.sp,
-            letterSpacing = 0.25.sp
-        )
-        val bodyRegular =
-            TextStyle(fontFamily = rubikRegular, fontSize = 14.sp, letterSpacing = 0.25.sp)
+        val bodyPrimary = TextStyle(fontFamily = lilyRegular, fontWeight = FontWeight(400), fontSize = 16.sp)
+        val bodyMedium = TextStyle(fontFamily = rubikMedium, fontWeight = FontWeight(500), fontSize = 16.sp, letterSpacing = 0.25.sp)
+        val bodyRegular = TextStyle(fontFamily = rubikRegular, fontSize = 14.sp, letterSpacing = 0.25.sp)
 
         val labelSmall = TextStyle(
             fontFamily = rubikRegular,
@@ -834,7 +802,7 @@ object SolarSystemTheme {
     }
 
     object Shapes {
-        val cardShape = RoundedCornerShape(20.dp)
+        val cardShape = RoundedCornerShape(24.dp)
         val earthGlowShape = CircleShape
     }
 
@@ -852,106 +820,4 @@ object SolarSystemTheme {
         )
     }
 }
-//endregion
-
-
-//region Data Models
-@Immutable
-data class PlanetData(
-    val name: String,
-    val subtitle: String,
-    val weight: String,
-    val day: String,
-    val temp: String,
-    val tempInfo: String?,
-    val info: String,
-    val imageId: Int,
-    val glowColor: Color,
-    @param:DrawableRes val weightIconRes: Int = R.drawable.ic_weight,
-    @param:DrawableRes val dayIconRes: Int = R.drawable.ic_sun,
-    @param:DrawableRes val tempIconRes: Int = R.drawable.ic_temperature,
-    @param:DrawableRes val infoIconRes: Int = R.drawable.ic_info
-)
-//endregion
-
-//region Static Dataset
-val planetsList = listOf(
-    PlanetData(
-        "Saturn",
-        "The Ring Master",
-        "70kg → 74kg",
-        "10.7 Hours",
-        "-178°C",
-        "Bring 3\njacket",
-        "Lighter than\nwater",
-        R.drawable.saturn,
-        Color(0xFFAB4F20)
-    ),
-    PlanetData(
-        "Mars",
-        "The next colony",
-        "70kg → 27kg",
-        "24.6 Hours",
-        "-65°C",
-        "Bring a\njacket",
-        "Red Dust Storms",
-        R.drawable.mars,
-        Color(0xFFFF844E)
-    ),
-    PlanetData(
-        "Mercury",
-        "The Fastest Planet",
-        "70kg → 26kg",
-        "1,408 Hours",
-        "167°C",
-        null,
-        "Birthday every\n88 days",
-        R.drawable.mercury,
-        Color(0xFF095B91)
-    ),
-    PlanetData(
-        "Venus",
-        "The Toxic Beauty",
-        "70kg → 63kg",
-        "243 Days",
-        "465°C",
-        null,
-        "Sun rises from\nWest",
-        R.drawable.venus,
-        Color(0xFFC69E4A)
-    ),
-    PlanetData(
-        "Jupiter",
-        "The Heavy Giant",
-        "70kg → 177kg",
-        "9.9 Hours",
-        "-110°C",
-        "Bring a\njacket",
-        "Has 95 moons",
-        R.drawable.jupiter,
-        Color(0xFFFF8332)
-    ),
-    PlanetData(
-        "Uranus",
-        "The Lacy Iceberg",
-        "70kg → 62kg",
-        "17 Hours",
-        "-224°C",
-        "Bring 3\njacket",
-        "diamond Shower",
-        R.drawable.uranus,
-        Color(0xFF31CFDB)
-    ),
-    PlanetData(
-        "Neptune",
-        "The Windy World",
-        "70kg → 79kg",
-        "16 Hours",
-        "-214°C",
-        "Bring 3\njacket",
-        "Wind faster than\nSound",
-        R.drawable.neptune,
-        Color(0xFF2CA6DB)
-    )
-)
 //endregion
