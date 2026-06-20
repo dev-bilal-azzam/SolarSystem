@@ -104,7 +104,7 @@ fun SolarSystemScreen() {
         val handleOuterSettle: (Boolean) -> Unit = remember {
             { dragUpDirection ->
                 val target = if (dragUpDirection) 1f else 0f
-                val animationSpec = spring<Float>(0.6f, 12f)
+                val animationSpec = spring<Float>(0.75f, 20f)
                 coroutineScope.launch { scrollProgress.animateTo(target, animationSpec) }
             }
         }
@@ -230,7 +230,7 @@ fun BoxScope.AnimatedHeader(
                 )
             )
             Text(
-                text = "Earth is only one small part of a much larger story.",
+                text = "Earth is only one small part of a much larger\nstory.",
                 color = Color.White,
                 fontFamily = FontFamily(Font(R.font.lily_regular)),
                 fontWeight = FontWeight(400),
@@ -435,7 +435,7 @@ fun AnimatedPlanetsList(
                 }
 
                 coroutineScope.launch {
-                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 50f))
                 }
             },
             onDragCancel = {
@@ -455,7 +455,7 @@ fun AnimatedPlanetsList(
                 val target = snapPoints.minByOrNull { kotlin.math.abs(it - currentScroll) } ?: 0f
 
                 coroutineScope.launch {
-                    scrollOffsetPx.animateTo(target, spring(0.75f, 20f))
+                    scrollOffsetPx.animateTo(target, spring(0.75f, 50f))
                 }
             },
             onVerticalDrag = { change, dragAmount ->
@@ -818,13 +818,13 @@ data class PlanetData(
 
 //region Static Dataset
 val planetsList = listOf(
-    PlanetData("Saturn", "The Ring Master", "70kg → 74kg", "10.7 Hours", "-178°C", "Bring 3 jacket", "Lighter than water", R.drawable.saturn, Color(0xFFE2BF7D)),
-    PlanetData("Mars", "The next colony", "70kg → 27kg", "24.6 Hours", "-65°C", "Bring a jacket", "Red Dust Storms", R.drawable.mars, Color(0xFFFF6B4A)),
-    PlanetData("Mercury", "The Fastest Planet", "70kg → 26kg", "1,408 Hours", "167°C", null, "Birthday every 88 day", R.drawable.mercury, Color(0xFFD5D5D5)),
-    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", null, "Sun rises from West", R.drawable.venus, Color(0xFFE3973B)),
-    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Bring a jacket", "Has 95 moons", R.drawable.jupiter, Color(0xFFD8A070)),
-    PlanetData("Uranus", "The Lacy Iceberg", "70kg → 62kg", "17 Hours", "-224°C", "Bring 3 jacket", "diamond Shower", R.drawable.uranus, Color(0xFF70CFFF)),
-    PlanetData("Neptune", "The Windy World", "70kg → 79kg", "16 Hours", "-214°C", "Bring 3 jacket", "Wind faster than Sound", R.drawable.neptune, Color(0xFF4B70DD))
+    PlanetData("Saturn", "The Ring Master", "70kg → 74kg", "10.7 Hours", "-178°C", "Bring 3\njacket", "Lighter than\nwater", R.drawable.saturn, Color(0xFFE2BF7D)),
+    PlanetData("Mars", "The next colony", "70kg → 27kg", "24.6 Hours", "-65°C", "Bring a\njacket", "Red Dust Storms", R.drawable.mars, Color(0xFFFF6B4A)),
+    PlanetData("Mercury", "The Fastest Planet", "70kg → 26kg", "1,408 Hours", "167°C", null, "Birthday every\n88 days", R.drawable.mercury, Color(0xFFD5D5D5)),
+    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", null, "Sun rises from\nWest", R.drawable.venus, Color(0xFFE3973B)),
+    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Bring a\njacket", "Has 95 moons", R.drawable.jupiter, Color(0xFFD8A070)),
+    PlanetData("Uranus", "The Lacy Iceberg", "70kg → 62kg", "17 Hours", "-224°C", "Bring 3\njacket", "diamond Shower", R.drawable.uranus, Color(0xFF70CFFF)),
+    PlanetData("Neptune", "The Windy World", "70kg → 79kg", "16 Hours", "-214°C", "Bring 3\njacket", "Wind faster than\nSound", R.drawable.neptune, Color(0xFF4B70DD))
 )
 //endregion
 
