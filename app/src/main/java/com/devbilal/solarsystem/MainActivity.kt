@@ -171,7 +171,7 @@ fun AnimatedBackground(progressProvider: () -> Float) {
                 val progress = progressProvider()
                 val color1 = lerpColor(Color.Black, bgEnd1, progress)
                 val color2 = lerpColor(bgStart1, bgEnd2, progress)
-                val color3 = lerpColor(bgStart2, bgEnd3, progress)
+                val color3 = lerpColor(bgStart2, bgEnd2, progress)
                 val color4 = lerpColor(bgStart3, bgEnd3, progress)
                 drawRect(
                     brush = Brush.verticalGradient(
@@ -509,7 +509,7 @@ fun AnimatedPlanetsList(
                 translationY = lerp(startY, endY, progress)
             }
             .then(gestureModifier)
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 20.dp)
     ) {
         Box(
             modifier = Modifier
@@ -590,21 +590,17 @@ fun PlanetCard(
     scrollOffsetProvider: () -> Float,
     dimmingProgressProvider: () -> Float
 ) {
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .drawBehind {
-                    val dimmingProgress = dimmingProgressProvider()
-                    val contentAlpha = 1f - (dimmingProgress * 0.55f).coerceIn(0f, 1f)
-
                     val progress = scrollOffsetProvider()
                     val bgAlpha = 0.8f + (progress * 0.2f)
 
@@ -618,112 +614,106 @@ fun PlanetCard(
                     )
 
                     drawRoundRect(
-                        color = planetBorder.copy(alpha = contentAlpha),
+                        color = planetBorder,
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 0.5.dp.toPx()),
                         cornerRadius = cornerRadius
                     )
                 }
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 20.dp)
-        ) {
-            Column(
-                modifier = Modifier.graphicsLayer {
+                .graphicsLayer {
                     val dimmingProgress = dimmingProgressProvider()
                     alpha = 1f - (dimmingProgress * 0.55f).coerceIn(0f, 1f)
                 }
+        ) {
+            Row(
+                modifier = Modifier
+                    .height(112.dp)
+                    .padding(bottom = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .height(96.dp)
-                        .padding(bottom = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(
-                        modifier = Modifier
-                            .width(112.dp)
-                            .padding(end = 16.dp)
+                Spacer(modifier = Modifier.width(112.dp)) // placeholder for the image
+                Column(modifier = Modifier.padding(start = 9.dp)) {
+                    Text(
+                        text = planet.name,
+                        color = Color.White,
+                        fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                        fontSize = 18.sp,
+                        letterSpacing = 0.25.sp
                     )
-                    Column {
-                        Text(
-                            text = planet.name,
-                            color = Color.White,
-                            fontFamily = FontFamily(Font(R.font.rubik_bold)),
-                            fontSize = 18.sp,
-                            letterSpacing = 0.25.sp
-                        )
-                        Text(
-                            text = planet.subtitle,
-                            color = Color.LightGray,
-                            fontFamily = FontFamily(Font(R.font.rubik_regular)),
-                            fontSize = 14.sp,
-                            letterSpacing = 0.25.sp
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "You Would Weigh",
-                            value = planet.weight,
-                            icon = ImageVector.vectorResource(R.drawable.ic_weight)
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .width(0.5.dp)
-                            .height(32.dp)
-                            .background(Color.White.copy(alpha = 0.16f))
+                    Text(
+                        text = planet.subtitle,
+                        color = Color.LightGray,
+                        fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                        fontSize = 14.sp,
+                        letterSpacing = 0.25.sp
                     )
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "One Day",
-                            value = planet.day,
-                            icon = ImageVector.vectorResource(R.drawable.ic_sun)
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .padding(vertical = 16.dp)
-                        .fillMaxWidth()
-                        .height(0.5.dp)
-                        .background(Color.White.copy(alpha = 0.16f))
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "Temperature",
-                            value = planet.temp,
-                            icon = ImageVector.vectorResource(R.drawable.ic_temperature),
-                            subValue = planet.tempInfo
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .width(0.5.dp)
-                            .height(32.dp)
-                            .background(Color.White.copy(alpha = 0.16f))
-                    )
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatItem(
-                            title = "Additional info",
-                            value = planet.info,
-                            icon = ImageVector.vectorResource(R.drawable.ic_info)
-                        )
-                    }
                 }
             }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    StatItem(
+                        title = "You Would Weigh",
+                        value = planet.weight,
+                        icon = ImageVector.vectorResource(R.drawable.ic_weight)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .width(0.5.dp)
+                        .height(32.dp)
+                        .background(Color.White.copy(alpha = 0.16f))
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    StatItem(
+                        title = "One Day",
+                        value = planet.day,
+                        icon = ImageVector.vectorResource(R.drawable.ic_sun)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 16.dp)
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(Color.White.copy(alpha = 0.16f))
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    StatItem(
+                        title = "Temperature",
+                        value = planet.temp,
+                        icon = ImageVector.vectorResource(R.drawable.ic_temperature),
+                        subValue = planet.tempInfo
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .width(0.5.dp)
+                        .height(32.dp)
+                        .background(Color.White.copy(alpha = 0.16f))
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    StatItem(
+                        title = "Additional info",
+                        value = planet.info,
+                        icon = ImageVector.vectorResource(R.drawable.ic_info)
+                    )
+                }
+            }
+
         }
 
         Image(
@@ -735,14 +725,14 @@ fun PlanetCard(
                 .dropShadow(
                     shape = CircleShape,
                     shadow = Shadow(
-                        radius = 100.dp,
+                        radius = 50.dp,
                         color = planet.glowColor,
-                        alpha = 0.5f,
+                        alpha = 0.25f,
                     )
                 )
                 .graphicsLayer {
                     val dimmingProgress = dimmingProgressProvider()
-                    alpha = 1f - (dimmingProgress * 0.55f).coerceIn(0f, 1f)
+                    alpha = 1f - (dimmingProgress * 0.85f).coerceIn(0f, 1f)
                 }
         )
     }
@@ -834,7 +824,7 @@ val planetsList = listOf(
         "Bring 3\njacket",
         "Lighter than\nwater",
         R.drawable.saturn,
-        Color(0xFFE2BF7D)
+        Color(0xFFAB4F20)
     ),
     PlanetData(
         "Mars",
@@ -845,7 +835,7 @@ val planetsList = listOf(
         "Bring a\njacket",
         "Red Dust Storms",
         R.drawable.mars,
-        Color(0xFFFF6B4A)
+        Color(0xFFFF844E)
     ),
     PlanetData(
         "Mercury",
@@ -856,7 +846,7 @@ val planetsList = listOf(
         null,
         "Birthday every\n88 days",
         R.drawable.mercury,
-        Color(0xFFD5D5D5)
+        Color(0xFF095B91)
     ),
     PlanetData(
         "Venus",
@@ -867,7 +857,7 @@ val planetsList = listOf(
         null,
         "Sun rises from\nWest",
         R.drawable.venus,
-        Color(0xFFE3973B)
+        Color(0xFFC69E4A)
     ),
     PlanetData(
         "Jupiter",
@@ -878,7 +868,7 @@ val planetsList = listOf(
         "Bring a\njacket",
         "Has 95 moons",
         R.drawable.jupiter,
-        Color(0xFFD8A070)
+        Color(0xFFFF8332)
     ),
     PlanetData(
         "Uranus",
@@ -889,7 +879,7 @@ val planetsList = listOf(
         "Bring 3\njacket",
         "diamond Shower",
         R.drawable.uranus,
-        Color(0xFF70CFFF)
+        Color(0xFF31CFDB)
     ),
     PlanetData(
         "Neptune",
@@ -900,7 +890,7 @@ val planetsList = listOf(
         "Bring 3\njacket",
         "Wind faster than\nSound",
         R.drawable.neptune,
-        Color(0xFF4B70DD)
+        Color(0xFF2CA6DB)
     )
 )
 //endregion
