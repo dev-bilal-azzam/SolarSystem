@@ -134,28 +134,29 @@ fun SolarSystemScreen() {
         ) {
             AnimatedBackground(progressProvider = { scrollProgress.value })
 
-            AnimatedHeader(
+
+            AnimatedEarth(
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx
             )
 
-                        AnimatedEarth(
-                            progressProvider = { scrollProgress.value },
-                            screenHeightPx = screenHeightPx
-                        )
-/*
-                        AnimatedFooter(
-                            progressProvider = { scrollProgress.value },
-                            screenHeightPx = screenHeightPx
-                        )
+            AnimatedHeader(
+                progressProvider = { scrollProgress.value },
+                screenHeightPx = screenHeightPx
+            )
+            /*
+                                    AnimatedFooter(
+                                        progressProvider = { scrollProgress.value },
+                                        screenHeightPx = screenHeightPx
+                                    )
 
-                        AnimatedPlanetsList(
-                            progressProvider = { scrollProgress.value },
-                            screenHeightPx = screenHeightPx,
-                            onOuterDrag = handleOuterDrag,
-                            onOuterSettle = handleOuterSettle
-                        )
-                        */
+                                    AnimatedPlanetsList(
+                                        progressProvider = { scrollProgress.value },
+                                        screenHeightPx = screenHeightPx,
+                                        onOuterDrag = handleOuterDrag,
+                                        onOuterSettle = handleOuterSettle
+                                    )
+                                    */
         }
     }
 }
@@ -282,8 +283,10 @@ fun BoxScope.AnimatedEarth(
     progressProvider: () -> Float,
     screenHeightPx: Float
 ) {
+    val density = LocalDensity.current
     val screenWidth = LocalWindowInfo.current.containerDpSize.width
-    val earthBaseSize = screenWidth * 0.55f
+    val earthBaseSize = screenWidth * 0.5556f
+    val endPaddingPx = remember(density) { with(density) { 36.dp.toPx() } }
 
     Image(
         painter = painterResource(id = R.drawable.earth),
@@ -291,27 +294,34 @@ fun BoxScope.AnimatedEarth(
         modifier = Modifier
             .size(earthBaseSize)
             .align(Alignment.TopCenter)
+            .statusBarsPadding()
             .graphicsLayer {
                 val progress = progressProvider()
-                val startScale = 3.22f
-                val startTranslateY = screenHeightPx * 0.65f
+                val startScale = 3.5f
                 val endScale = 1.0f
-                val endTranslateY = screenHeightPx * 0.12f
 
                 val currentScale = lerp(startScale, endScale, progress)
                 scaleX = currentScale
                 scaleY = currentScale
-                translationY = lerp(startTranslateY, endTranslateY, progress)
+
+                val startTranslateY = screenHeightPx * 0.65f
+
+                translationY = lerp(startTranslateY, endPaddingPx, progress)
             }
             .dropShadow(
                 shape = CircleShape,
                 shadow = Shadow(
                     radius = 50.dp,
                     color = earthShadowColor,
-                    alpha = 0.25f,
+                    alpha = .15f,
                     offset = DpOffset(0.dp, (-12).dp)
                 )
             )
+            .graphicsLayer {
+                val progress = progressProvider()
+                alpha = 1.5f - progress
+
+            }
     )
 }
 //endregion
