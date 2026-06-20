@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -135,12 +136,12 @@ fun SolarSystemScreen() {
         ) {
             AnimatedBackground(progressProvider = { scrollProgress.value })
 
-            AnimatedEarth(
+            AnimatedHeader(
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx
             )
-
-            AnimatedHeader(
+/*
+            AnimatedEarth(
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx
             )
@@ -156,6 +157,7 @@ fun SolarSystemScreen() {
                 onOuterDrag = handleOuterDrag,
                 onOuterSettle = handleOuterSettle
             )
+            */
         }
     }
 }
@@ -170,18 +172,18 @@ fun AnimatedBackground(progressProvider: () -> Float) {
             .fillMaxSize()
             .drawBehind {
                 val progress = progressProvider()
-                val color1 = lerpColor(bgStart1, bgEnd1, progress)
-                val color2 = lerpColor(bgStart2, bgEnd2, progress)
-                val color3 = lerpColor(bgStart3, bgEnd3, progress)
-
-                drawRect(brush = Brush.verticalGradient(colors = listOf(color1, color2, color3)))
+                val color1 = lerpColor(Color.Black, bgEnd1, progress)
+                val color2 = lerpColor(bgStart1, bgEnd2, progress)
+                val color3 = lerpColor(bgStart2, bgEnd3, progress)
+                val color4 = lerpColor(bgStart3, bgEnd3, progress)
+                drawRect(brush = Brush.verticalGradient(startY = 65f, colors = listOf(color1, color2, color3, color4)))
             }
     ) {
         Image(
             painter = painterResource(id = R.drawable.stars_bg),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().alpha(.34f)
         )
     }
 }
@@ -209,6 +211,7 @@ fun BoxScope.AnimatedHeader(
     Box(
         modifier = Modifier
             .align(Alignment.TopCenter)
+            .statusBarsPadding()
             .fillMaxWidth(),
         contentAlignment = Alignment.TopCenter
     ) {
@@ -262,7 +265,7 @@ fun BoxScope.AnimatedHeader(
         ) {
             Text(
                 text = "Earth",
-                color = Color.White,
+                color = Color.White.copy(alpha = .88f),
                 fontFamily = FontFamily(Font(R.font.rubik_bold)),
                 fontWeight = FontWeight(700),
                 fontSize = 64.sp,
@@ -272,7 +275,7 @@ fun BoxScope.AnimatedHeader(
             )
             Text(
                 text = "A tiny blue world drifting\nthrough the endless dark.",
-                color = Color.White,
+                color = Color.White.copy(alpha = .8f),
                 fontFamily = FontFamily(Font(R.font.lily_regular)),
                 fontWeight = FontWeight(400),
                 fontSize = 16.sp,
