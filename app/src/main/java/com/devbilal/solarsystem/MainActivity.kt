@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
@@ -42,14 +43,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -229,7 +228,7 @@ fun BoxScope.AnimatedHeader(
             Text(
                 text = "Our Solar System",
                 color = Color.White.copy(alpha = .88f),
-                fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                fontFamily = RubikBold,
                 fontWeight = FontWeight(700),
                 fontSize = 24.sp,
                 style = TextStyle(shadow = shadow)
@@ -237,7 +236,7 @@ fun BoxScope.AnimatedHeader(
             Text(
                 text = "Earth is only one small part of a much larger\nstory.",
                 color = Color.White.copy(alpha = .80f),
-                fontFamily = FontFamily(Font(R.font.lily_regular)),
+                fontFamily = LilyRegular,
                 fontWeight = FontWeight(400),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
@@ -257,7 +256,7 @@ fun BoxScope.AnimatedHeader(
             Text(
                 text = "Earth",
                 color = Color.White.copy(alpha = .88f),
-                fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                fontFamily = RubikBold,
                 fontWeight = FontWeight(700),
                 fontSize = 64.sp,
                 style = TextStyle(shadow = shadow)
@@ -265,7 +264,7 @@ fun BoxScope.AnimatedHeader(
             Text(
                 text = "A tiny blue world drifting\nthrough the endless dark.",
                 color = Color.White.copy(alpha = .8f),
-                fontFamily = FontFamily(Font(R.font.lily_regular)),
+                fontFamily = LilyRegular,
                 fontWeight = FontWeight(400),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
@@ -316,6 +315,8 @@ fun BoxScope.AnimatedEarth(
                     offset = DpOffset(0.dp, offset.dp)
                 )
             )
+            // two separate blocks (nodes) -> the alpha should be applied to the shadow also
+            // if we combined both before the shadow it would be cropped
             .graphicsLayer {
                 val progress = progressProvider()
                 alpha = 1.5f - progress
@@ -375,7 +376,7 @@ fun BoxScope.AnimatedFooter(
         Text(
             text = "Swipe Up To Explore",
             color = Color.White,
-            fontFamily = FontFamily(Font(R.font.rubik_medium)),
+            fontFamily = RubikMedium,
             fontWeight = FontWeight(500),
             fontSize = 16.sp,
             letterSpacing = 0.25.sp,
@@ -637,14 +638,14 @@ fun PlanetCard(
                     Text(
                         text = planet.name,
                         color = Color.White,
-                        fontFamily = FontFamily(Font(R.font.rubik_bold)),
+                        fontFamily = RubikBold,
                         fontSize = 18.sp,
                         letterSpacing = 0.25.sp
                     )
                     Text(
                         text = planet.subtitle,
                         color = Color.LightGray,
-                        fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                        fontFamily = RubikRegular,
                         fontSize = 14.sp,
                         letterSpacing = 0.25.sp
                     )
@@ -659,7 +660,7 @@ fun PlanetCard(
                     StatItem(
                         title = "You Would Weigh",
                         value = planet.weight,
-                        icon = ImageVector.vectorResource(R.drawable.ic_weight)
+                        iconRes = R.drawable.ic_weight
                     )
                 }
                 Box(
@@ -673,7 +674,7 @@ fun PlanetCard(
                     StatItem(
                         title = "One Day",
                         value = planet.day,
-                        icon = ImageVector.vectorResource(R.drawable.ic_sun)
+                        iconRes = R.drawable.ic_sun
                     )
                 }
             }
@@ -694,7 +695,7 @@ fun PlanetCard(
                     StatItem(
                         title = "Temperature",
                         value = planet.temp,
-                        icon = ImageVector.vectorResource(R.drawable.ic_temperature),
+                        iconRes = R.drawable.ic_temperature,
                         subValue = planet.tempInfo
                     )
                 }
@@ -709,7 +710,7 @@ fun PlanetCard(
                     StatItem(
                         title = "Additional info",
                         value = planet.info,
-                        icon = ImageVector.vectorResource(R.drawable.ic_info)
+                        iconRes = R.drawable.ic_info
                     )
                 }
             }
@@ -744,7 +745,7 @@ fun PlanetCard(
 fun StatItem(
     title: String,
     value: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     subValue: String? = null
 ) {
     Row(
@@ -753,7 +754,7 @@ fun StatItem(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(
-            imageVector = icon,
+            painter = painterResource(iconRes),
             contentDescription = null,
             tint = Color.Gray,
             modifier = Modifier.size(20.dp)
@@ -763,7 +764,7 @@ fun StatItem(
                 text = title,
                 color = Color.White.copy(alpha = 0.66f),
                 fontSize = 12.sp,
-                fontFamily = FontFamily(Font(R.font.rubik_regular)),
+                fontFamily = RubikRegular,
                 letterSpacing = 0.25.sp,
                 style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
             )
@@ -776,7 +777,7 @@ fun StatItem(
                             style = SpanStyle(
                                 color = Color.White.copy(alpha = 0.66f),
                                 fontSize = 10.sp,
-                                fontFamily = FontFamily(Font(R.font.rubik_regular))
+                                fontFamily = RubikRegular
                             )
                         ) {
                             append(", $subValue")
@@ -789,7 +790,7 @@ fun StatItem(
                 text = combinedValue,
                 color = Color.White.copy(alpha = 0.88f),
                 fontSize = 12.sp,
-                fontFamily = FontFamily(Font(R.font.rubik_medium)),
+                fontFamily = RubikMedium,
                 letterSpacing = 0.25.sp,
                 style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
             )
@@ -905,4 +906,11 @@ val bgEnd1 = Color(0xFF1E1B4B)
 val planetBg = Color(0xFF0B1223)
 val planetBorder = Color(0xFF2F2E2E)
 val earthShadowColor = Color(0xFF4197E7)
+//endregion
+
+// region Typography
+private val RubikBold = FontFamily(Font(R.font.rubik_bold))
+private val RubikRegular = FontFamily(Font(R.font.rubik_regular))
+private val RubikMedium = FontFamily(Font(R.font.rubik_medium))
+private val LilyRegular = FontFamily(Font(R.font.lily_regular))
 //endregion
