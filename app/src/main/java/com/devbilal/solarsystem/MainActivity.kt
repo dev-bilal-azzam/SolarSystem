@@ -19,11 +19,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -140,24 +138,24 @@ fun SolarSystemScreen() {
                 progressProvider = { scrollProgress.value },
                 screenHeightPx = screenHeightPx
             )
+
+                        AnimatedEarth(
+                            progressProvider = { scrollProgress.value },
+                            screenHeightPx = screenHeightPx
+                        )
 /*
-            AnimatedEarth(
-                progressProvider = { scrollProgress.value },
-                screenHeightPx = screenHeightPx
-            )
+                        AnimatedFooter(
+                            progressProvider = { scrollProgress.value },
+                            screenHeightPx = screenHeightPx
+                        )
 
-            AnimatedFooter(
-                progressProvider = { scrollProgress.value },
-                screenHeightPx = screenHeightPx
-            )
-
-            AnimatedPlanetsList(
-                progressProvider = { scrollProgress.value },
-                screenHeightPx = screenHeightPx,
-                onOuterDrag = handleOuterDrag,
-                onOuterSettle = handleOuterSettle
-            )
-            */
+                        AnimatedPlanetsList(
+                            progressProvider = { scrollProgress.value },
+                            screenHeightPx = screenHeightPx,
+                            onOuterDrag = handleOuterDrag,
+                            onOuterSettle = handleOuterSettle
+                        )
+                        */
         }
     }
 }
@@ -176,14 +174,21 @@ fun AnimatedBackground(progressProvider: () -> Float) {
                 val color2 = lerpColor(bgStart1, bgEnd2, progress)
                 val color3 = lerpColor(bgStart2, bgEnd3, progress)
                 val color4 = lerpColor(bgStart3, bgEnd3, progress)
-                drawRect(brush = Brush.verticalGradient(startY = 65f, colors = listOf(color1, color2, color3, color4)))
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        startY = 65f,
+                        colors = listOf(color1, color2, color3, color4)
+                    )
+                )
             }
     ) {
         Image(
             painter = painterResource(id = R.drawable.stars_bg),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().alpha(.34f)
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(.34f)
         )
     }
 }
@@ -196,9 +201,6 @@ fun BoxScope.AnimatedHeader(
     screenHeightPx: Float
 ) {
     val density = LocalDensity.current
-    val screenWidth = LocalWindowInfo.current.containerDpSize.width
-    val earthBaseSizePx =
-        remember(density, screenWidth) { with(density) { (screenWidth * 0.55f).toPx() } }
     val startPaddingPx = remember(density) { with(density) { 56.dp.toPx() } }
     val endPaddingPx = remember(density) { with(density) { 98.dp.toPx() } }
     val shadowOffsetPx = remember(density) { with(density) { 4.dp.toPx() } }
@@ -219,30 +221,23 @@ fun BoxScope.AnimatedHeader(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.graphicsLayer {
                 val progress = progressProvider()
-                val earthCenterY = (screenHeightPx * 0.12f) + (earthBaseSizePx / 2f)
-                val headerHalfHeightPx = with(density) { 40.dp.toPx() }
-                val finalCenterY = earthCenterY - headerHalfHeightPx
                 val startTranslateY = -screenHeightPx * 0.4f
-
-                translationY = lerp(startTranslateY, finalCenterY, progress)
-                alpha = 1f
+                translationY = lerp(startTranslateY, endPaddingPx, progress)
+                alpha = progress
             },
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-
             Text(
                 text = "Our Solar System",
-                color = Color.White,
+                color = Color.White.copy(alpha = .88f),
                 fontFamily = FontFamily(Font(R.font.rubik_bold)),
                 fontWeight = FontWeight(700),
                 fontSize = 24.sp,
-                style = TextStyle(
-                    shadow = shadow
-                )
+                style = TextStyle(shadow = shadow)
             )
             Text(
                 text = "Earth is only one small part of a much larger\nstory.",
-                color = Color.White,
+                color = Color.White.copy(alpha = .80f),
                 fontFamily = FontFamily(Font(R.font.lily_regular)),
                 fontWeight = FontWeight(400),
                 fontSize = 16.sp,
@@ -254,12 +249,9 @@ fun BoxScope.AnimatedHeader(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.graphicsLayer {
                 val progress = progressProvider()
-                val currentPadding = lerp(startPaddingPx, endPaddingPx, progress)
-                val startTranslateY = 0f
                 val endTranslateY = -screenHeightPx * 0.4f
-
-                translationY = lerp(startTranslateY, endTranslateY, progress) + currentPadding
-                alpha = 1f
+                translationY = lerp(startPaddingPx, endTranslateY, progress)
+                alpha = 1f - progress
             },
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -269,9 +261,7 @@ fun BoxScope.AnimatedHeader(
                 fontFamily = FontFamily(Font(R.font.rubik_bold)),
                 fontWeight = FontWeight(700),
                 fontSize = 64.sp,
-                style = TextStyle(
-                    shadow = shadow
-                )
+                style = TextStyle(shadow = shadow)
             )
             Text(
                 text = "A tiny blue world drifting\nthrough the endless dark.",
@@ -413,13 +403,15 @@ fun AnimatedPlanetsList(
     val earthBaseSizePx = with(density) { (screenWidth * 0.55f).toPx() }
     val listSpacingPx = with(density) { 24.dp.toPx() }
 
-    val startEarthBottomPx = (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
+    val startEarthBottomPx =
+        (screenHeightPx * 0.65f) + (earthBaseSizePx / 2f) + (earthBaseSizePx * 3.22f / 2f)
     val startY = startEarthBottomPx + listSpacingPx
     val endEarthBottomPx = (screenHeightPx * 0.12f) + earthBaseSizePx
     val endY = endEarthBottomPx + listSpacingPx
     val visibleHeightDp = with(density) { (screenHeightPx - endY).toDp() }
 
-    val cardHeightsPx = remember { mutableStateListOf<Float>().apply { repeat(planetsList.size) { add(0f) } } }
+    val cardHeightsPx =
+        remember { mutableStateListOf<Float>().apply { repeat(planetsList.size) { add(0f) } } }
     val scrollOffsetPx = remember { Animatable(0f) }
     var isDragUp = remember { false }
 
@@ -812,7 +804,6 @@ fun StatItem(
 //endregion
 
 
-
 //region Data Models
 data class PlanetData(
     val name: String,
@@ -829,13 +820,83 @@ data class PlanetData(
 
 //region Static Dataset
 val planetsList = listOf(
-    PlanetData("Saturn", "The Ring Master", "70kg → 74kg", "10.7 Hours", "-178°C", "Bring 3\njacket", "Lighter than\nwater", R.drawable.saturn, Color(0xFFE2BF7D)),
-    PlanetData("Mars", "The next colony", "70kg → 27kg", "24.6 Hours", "-65°C", "Bring a\njacket", "Red Dust Storms", R.drawable.mars, Color(0xFFFF6B4A)),
-    PlanetData("Mercury", "The Fastest Planet", "70kg → 26kg", "1,408 Hours", "167°C", null, "Birthday every\n88 days", R.drawable.mercury, Color(0xFFD5D5D5)),
-    PlanetData("Venus", "The Toxic Beauty", "70kg → 63kg", "243 Days", "465°C", null, "Sun rises from\nWest", R.drawable.venus, Color(0xFFE3973B)),
-    PlanetData("Jupiter", "The Heavy Giant", "70kg → 177kg", "9.9 Hours", "-110°C", "Bring a\njacket", "Has 95 moons", R.drawable.jupiter, Color(0xFFD8A070)),
-    PlanetData("Uranus", "The Lacy Iceberg", "70kg → 62kg", "17 Hours", "-224°C", "Bring 3\njacket", "diamond Shower", R.drawable.uranus, Color(0xFF70CFFF)),
-    PlanetData("Neptune", "The Windy World", "70kg → 79kg", "16 Hours", "-214°C", "Bring 3\njacket", "Wind faster than\nSound", R.drawable.neptune, Color(0xFF4B70DD))
+    PlanetData(
+        "Saturn",
+        "The Ring Master",
+        "70kg → 74kg",
+        "10.7 Hours",
+        "-178°C",
+        "Bring 3\njacket",
+        "Lighter than\nwater",
+        R.drawable.saturn,
+        Color(0xFFE2BF7D)
+    ),
+    PlanetData(
+        "Mars",
+        "The next colony",
+        "70kg → 27kg",
+        "24.6 Hours",
+        "-65°C",
+        "Bring a\njacket",
+        "Red Dust Storms",
+        R.drawable.mars,
+        Color(0xFFFF6B4A)
+    ),
+    PlanetData(
+        "Mercury",
+        "The Fastest Planet",
+        "70kg → 26kg",
+        "1,408 Hours",
+        "167°C",
+        null,
+        "Birthday every\n88 days",
+        R.drawable.mercury,
+        Color(0xFFD5D5D5)
+    ),
+    PlanetData(
+        "Venus",
+        "The Toxic Beauty",
+        "70kg → 63kg",
+        "243 Days",
+        "465°C",
+        null,
+        "Sun rises from\nWest",
+        R.drawable.venus,
+        Color(0xFFE3973B)
+    ),
+    PlanetData(
+        "Jupiter",
+        "The Heavy Giant",
+        "70kg → 177kg",
+        "9.9 Hours",
+        "-110°C",
+        "Bring a\njacket",
+        "Has 95 moons",
+        R.drawable.jupiter,
+        Color(0xFFD8A070)
+    ),
+    PlanetData(
+        "Uranus",
+        "The Lacy Iceberg",
+        "70kg → 62kg",
+        "17 Hours",
+        "-224°C",
+        "Bring 3\njacket",
+        "diamond Shower",
+        R.drawable.uranus,
+        Color(0xFF70CFFF)
+    ),
+    PlanetData(
+        "Neptune",
+        "The Windy World",
+        "70kg → 79kg",
+        "16 Hours",
+        "-214°C",
+        "Bring 3\njacket",
+        "Wind faster than\nSound",
+        R.drawable.neptune,
+        Color(0xFF4B70DD)
+    )
 )
 //endregion
 
