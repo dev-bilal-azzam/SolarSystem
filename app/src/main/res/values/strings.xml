@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Solar System</string>
+    <string name="earth">Earth</string>
+    <string name="our_solar_system">Our Solar System</string>
+    <string name="earth_is_only_one_small_part_of_a_much_larger_story">Earth is only one small part of a much larger\nstory.</string>
+    <string name="a_tiny_blue_world_drifting_through_the_endless_dark">A tiny blue world drifting\nthrough the endless dark.</string>
+    <string name="swipe_up_to_explore">Swipe Up To Explore</string>
+    <string name="you_would_weigh">You Would Weigh</string>
+    <string name="one_day">One Day</string>
+    <string name="temperature">Temperature</string>
+    <string name="additional_info">Additional info</string>
 </resources>

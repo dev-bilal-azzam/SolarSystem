@@ -54,6 +54,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -175,9 +176,21 @@ fun AnimatedBackground(progressProvider: () -> Float) {
             .drawBehind {
                 val progress = progressProvider()
                 val color1 = lerpColor(Color.Black, SolarSystemTheme.Colors.bgEnd1, progress)
-                val color2 = lerpColor(SolarSystemTheme.Colors.bgStart1, SolarSystemTheme.Colors.bgEnd2, progress)
-                val color3 = lerpColor(SolarSystemTheme.Colors.bgStart2, SolarSystemTheme.Colors.bgEnd2, progress)
-                val color4 = lerpColor(SolarSystemTheme.Colors.bgStart3, SolarSystemTheme.Colors.bgEnd3, progress)
+                val color2 = lerpColor(
+                    SolarSystemTheme.Colors.bgStart1,
+                    SolarSystemTheme.Colors.bgEnd2,
+                    progress
+                )
+                val color3 = lerpColor(
+                    SolarSystemTheme.Colors.bgStart2,
+                    SolarSystemTheme.Colors.bgEnd2,
+                    progress
+                )
+                val color4 = lerpColor(
+                    SolarSystemTheme.Colors.bgStart3,
+                    SolarSystemTheme.Colors.bgEnd3,
+                    progress
+                )
                 drawRect(
                     brush = Brush.verticalGradient(
                         startY = 65f,
@@ -212,7 +225,7 @@ fun BoxScope.AnimatedEarth(
 
     Image(
         painter = painterResource(id = R.drawable.earth),
-        contentDescription = "Earth",
+        contentDescription = stringResource(R.string.earth),
         modifier = Modifier
             .size(earthBaseSize)
             .align(Alignment.TopCenter)
@@ -276,12 +289,12 @@ fun BoxScope.AnimatedHeader(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "Our Solar System",
+                text = stringResource(R.string.our_solar_system),
                 color = SolarSystemTheme.Colors.textPrimary,
                 style = SolarSystemTheme.Typography.headerMedium.copy(shadow = shadow)
             )
             Text(
-                text = "Earth is only one small part of a much larger\nstory.",
+                text = stringResource(R.string.earth_is_only_one_small_part_of_a_much_larger_story),
                 color = SolarSystemTheme.Colors.textSecondary,
                 style = SolarSystemTheme.Typography.bodyPrimary,
                 textAlign = TextAlign.Center
@@ -299,12 +312,12 @@ fun BoxScope.AnimatedHeader(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "Earth",
+                text = stringResource(R.string.earth),
                 color = SolarSystemTheme.Colors.textPrimary,
                 style = SolarSystemTheme.Typography.headerLarge.copy(shadow = shadow)
             )
             Text(
-                text = "A tiny blue world drifting\nthrough the endless dark.",
+                text = stringResource(R.string.a_tiny_blue_world_drifting_through_the_endless_dark),
                 color = SolarSystemTheme.Colors.textSecondary,
                 style = SolarSystemTheme.Typography.bodyPrimary,
                 textAlign = TextAlign.Center
@@ -345,7 +358,7 @@ fun BoxScope.AnimatedFooter(
         }
 
         Text(
-            text = "Swipe Up To Explore",
+            text = stringResource(R.string.swipe_up_to_explore),
             color = SolarSystemTheme.Colors.textStaticWhite,
             style = SolarSystemTheme.Typography.bodyMedium.copy(
                 shadow = SolarSystemTheme.Shadows.textFooterShadow(shadowOffsetPx)
@@ -606,7 +619,7 @@ fun PlanetCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(title = "You Would Weigh", value = planet.weight, iconRes = planet.weightIconRes)
+                    StatItem(title = stringResource(R.string.you_would_weigh), value = planet.weight, iconRes = planet.weightIconRes)
                 }
                 Box(
                     modifier = Modifier
@@ -616,7 +629,7 @@ fun PlanetCard(
                         .background(SolarSystemTheme.Colors.textStaticWhite.copy(alpha = 0.16f))
                 )
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(title = "One Day", value = planet.day, iconRes = planet.dayIconRes)
+                    StatItem(title = stringResource(R.string.one_day), value = planet.day, iconRes = planet.dayIconRes)
                 }
             }
 
@@ -633,7 +646,7 @@ fun PlanetCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(title = "Temperature", value = planet.temp, iconRes = planet.tempIconRes, subValue = planet.tempInfo)
+                    StatItem(title = stringResource(R.string.temperature), value = planet.temp, iconRes = planet.tempIconRes, subValue = planet.tempInfo)
                 }
                 Box(
                     modifier = Modifier
@@ -643,7 +656,7 @@ fun PlanetCard(
                         .background(SolarSystemTheme.Colors.textStaticWhite.copy(alpha = 0.16f))
                 )
                 Box(modifier = Modifier.weight(1f)) {
-                    StatItem(title = "Additional info", value = planet.info, iconRes = planet.infoIconRes)
+                    StatItem(title = stringResource(R.string.additional_info), value = planet.info, iconRes = planet.infoIconRes)
                 }
             }
         }
